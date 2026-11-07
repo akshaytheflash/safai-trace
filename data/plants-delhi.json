@@ -1,0 +1,1027 @@
+{
+  "snapshot": "delhi-fstp-stp",
+  "fetchedAt": "2026-11-06T10:37:05.440Z",
+  "fetchedDate": "2026-11-06",
+  "mirror": "https://overpass-api.de/api/interpreter",
+  "query": "[out:json][timeout:90];(nwr[\"man_made\"=\"wastewater_plant\"](28.40,76.84,28.88,77.35);nwr[\"amenity\"=\"wastewater_plant\"](28.40,76.84,28.88,77.35););out center tags;",
+  "bbox": {
+    "south": 28.4,
+    "west": 76.84,
+    "north": 28.88,
+    "east": 77.35
+  },
+  "license": "OpenStreetMap contributors, ODbL 1.0",
+  "note": "Real OSM wastewater_plant records. Some OSM entries are water-treatment works; verify operator before dispatch. No coordinates are invented.",
+  "count": 63,
+  "namedCount": 38,
+  "plants": [
+    {
+      "id": "node/12418217706",
+      "name": "0.01 MGD",
+      "operator": null,
+      "description": null,
+      "lat": 28.6601731,
+      "lon": 77.1203934,
+      "osmType": "node",
+      "osmId": 12418217706,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/node/12418217706"
+    },
+    {
+      "id": "node/12418201637",
+      "name": "0.2 MGD",
+      "operator": null,
+      "description": null,
+      "lat": 28.6605518,
+      "lon": 77.1053206,
+      "osmType": "node",
+      "osmId": 12418201637,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/node/12418201637"
+    },
+    {
+      "id": "node/12397214228",
+      "name": "0.3MGD NGL-14A",
+      "operator": null,
+      "description": null,
+      "lat": 28.6232592,
+      "lon": 77.0212952,
+      "osmType": "node",
+      "osmId": 12397214228,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/node/12397214228"
+    },
+    {
+      "id": "node/12418202364",
+      "name": "0.4 MGD",
+      "operator": null,
+      "description": null,
+      "lat": 28.6606629,
+      "lon": 77.1140451,
+      "osmType": "node",
+      "osmId": 12418202364,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/node/12418202364"
+    },
+    {
+      "id": "node/12418208690",
+      "name": "0.4 MGD",
+      "operator": null,
+      "description": null,
+      "lat": 28.6602506,
+      "lon": 77.1084077,
+      "osmType": "node",
+      "osmId": 12418208690,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/node/12418208690"
+    },
+    {
+      "id": "node/12418258562",
+      "name": "0.42 MGD",
+      "operator": null,
+      "description": null,
+      "lat": 28.6733693,
+      "lon": 77.163052,
+      "osmType": "node",
+      "osmId": 12418258562,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/node/12418258562"
+    },
+    {
+      "id": "node/12418201089",
+      "name": "0.6 MGD",
+      "operator": null,
+      "description": null,
+      "lat": 28.6601651,
+      "lon": 77.1108579,
+      "osmType": "node",
+      "osmId": 12418201089,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/node/12418201089"
+    },
+    {
+      "id": "node/12418093287",
+      "name": "1.1 MGD",
+      "operator": null,
+      "description": null,
+      "lat": 28.660199,
+      "lon": 77.1120674,
+      "osmType": "node",
+      "osmId": 12418093287,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/node/12418093287"
+    },
+    {
+      "id": "node/12418195765",
+      "name": "4.4 MGD",
+      "operator": null,
+      "description": null,
+      "lat": 28.6540913,
+      "lon": 77.0904063,
+      "osmType": "node",
+      "osmId": 12418195765,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/node/12418195765"
+    },
+    {
+      "id": "node/12418290516",
+      "name": "4.9 MGD",
+      "operator": null,
+      "description": null,
+      "lat": 28.666819,
+      "lon": 77.1387321,
+      "osmType": "node",
+      "osmId": 12418290516,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/node/12418290516"
+    },
+    {
+      "id": "node/12418232413",
+      "name": "6.5 MGD",
+      "operator": null,
+      "description": null,
+      "lat": 28.6650072,
+      "lon": 77.1353019,
+      "osmType": "node",
+      "osmId": 12418232413,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/node/12418232413"
+    },
+    {
+      "id": "way/217295578",
+      "name": "Delhi Jal Board",
+      "operator": null,
+      "description": null,
+      "lat": 28.6082591,
+      "lon": 77.0053689,
+      "osmType": "way",
+      "osmId": 217295578,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/217295578"
+    },
+    {
+      "id": "way/261665827",
+      "name": "Delhi Jal Board",
+      "operator": null,
+      "description": null,
+      "lat": 28.6838441,
+      "lon": 77.0784098,
+      "osmType": "way",
+      "osmId": 261665827,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/261665827"
+    },
+    {
+      "id": "way/262627564",
+      "name": "Delhi Jal Board",
+      "operator": "Delhi Jal Board",
+      "description": null,
+      "lat": 28.6517967,
+      "lon": 77.0818481,
+      "osmType": "way",
+      "osmId": 262627564,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/262627564"
+    },
+    {
+      "id": "way/262667282",
+      "name": "Delhi Jal Board",
+      "operator": null,
+      "description": null,
+      "lat": 28.6667731,
+      "lon": 77.0938025,
+      "osmType": "way",
+      "osmId": 262667282,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/262667282"
+    },
+    {
+      "id": "way/263595539",
+      "name": "Delhi Jal Board",
+      "operator": null,
+      "description": null,
+      "lat": 28.6606132,
+      "lon": 77.0141064,
+      "osmType": "way",
+      "osmId": 263595539,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/263595539"
+    },
+    {
+      "id": "way/264861573",
+      "name": "Delhi Jal Board",
+      "operator": null,
+      "description": null,
+      "lat": 28.697566,
+      "lon": 77.2872942,
+      "osmType": "way",
+      "osmId": 264861573,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/264861573"
+    },
+    {
+      "id": "way/291654385",
+      "name": "Delhi Jal Board",
+      "operator": null,
+      "description": null,
+      "lat": 28.629819,
+      "lon": 77.1315086,
+      "osmType": "way",
+      "osmId": 291654385,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/291654385"
+    },
+    {
+      "id": "way/904462116",
+      "name": "Delhi Jal Board",
+      "operator": null,
+      "description": null,
+      "lat": 28.7012058,
+      "lon": 77.1764083,
+      "osmType": "way",
+      "osmId": 904462116,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/904462116"
+    },
+    {
+      "id": "way/1007603946",
+      "name": "Delhi Jal Board",
+      "operator": null,
+      "description": null,
+      "lat": 28.6046891,
+      "lon": 77.0087137,
+      "osmType": "way",
+      "osmId": 1007603946,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/1007603946"
+    },
+    {
+      "id": "node/12395787640",
+      "name": "Delhi Jal Board NGL-14 Mungashpur",
+      "operator": "Delhi Jal Board",
+      "description": "12.6 MGD",
+      "lat": 28.6268858,
+      "lon": 77.0197567,
+      "osmType": "node",
+      "osmId": 12395787640,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/node/12395787640"
+    },
+    {
+      "id": "node/12395870613",
+      "name": "Delhi Jal Board SPL-50 Baprola",
+      "operator": null,
+      "description": "0.3 MGD",
+      "lat": 28.6368905,
+      "lon": 77.0232269,
+      "osmType": "node",
+      "osmId": 12395870613,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/node/12395870613"
+    },
+    {
+      "id": "way/1390131510",
+      "name": "Sadar Bazar Water Softening Plant",
+      "operator": null,
+      "description": null,
+      "lat": 28.5976045,
+      "lon": 77.1219823,
+      "osmType": "way",
+      "osmId": 1390131510,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/1390131510"
+    },
+    {
+      "id": "way/81056428",
+      "name": "Sewage Treatment Plant",
+      "operator": null,
+      "description": null,
+      "lat": 28.7052318,
+      "lon": 77.2777325,
+      "osmType": "way",
+      "osmId": 81056428,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/81056428"
+    },
+    {
+      "id": "way/170984172",
+      "name": "Sewage Treatment Plant",
+      "operator": null,
+      "description": null,
+      "lat": 28.6068825,
+      "lon": 77.3251085,
+      "osmType": "way",
+      "osmId": 170984172,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/170984172"
+    },
+    {
+      "id": "way/290626092",
+      "name": "Sewage Treatment Plant",
+      "operator": "Delhi Jal Board",
+      "description": null,
+      "lat": 28.7218056,
+      "lon": 77.1917579,
+      "osmType": "way",
+      "osmId": 290626092,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/290626092"
+    },
+    {
+      "id": "way/80511305",
+      "name": "Sewage Treatment Plant - Okhla",
+      "operator": null,
+      "description": null,
+      "lat": 28.5471299,
+      "lon": 77.2834582,
+      "osmType": "way",
+      "osmId": 80511305,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/80511305"
+    },
+    {
+      "id": "way/1292564458",
+      "name": "SH-L07",
+      "operator": "Delhi Jal Board",
+      "description": null,
+      "lat": 28.6447481,
+      "lon": 77.2986647,
+      "osmType": "way",
+      "osmId": 1292564458,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/1292564458"
+    },
+    {
+      "id": "way/1525695210",
+      "name": "Sonia Vihar Water Treatment Plant",
+      "operator": null,
+      "description": null,
+      "lat": 28.7098701,
+      "lon": 77.246769,
+      "osmType": "way",
+      "osmId": 1525695210,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/1525695210"
+    },
+    {
+      "id": "way/296730667",
+      "name": "STP",
+      "operator": null,
+      "description": null,
+      "lat": 28.7753595,
+      "lon": 77.255911,
+      "osmType": "way",
+      "osmId": 296730667,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/296730667"
+    },
+    {
+      "id": "node/11621900617",
+      "name": "UNIFY AQUA",
+      "operator": "PARMESHWAR JENA",
+      "description": null,
+      "lat": 28.4999142,
+      "lon": 77.013654,
+      "osmType": "node",
+      "osmId": 11621900617,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/node/11621900617"
+    },
+    {
+      "id": "way/740035787",
+      "name": "Veolia Water Treatment Research India Ltd.",
+      "operator": null,
+      "description": null,
+      "lat": 28.6557732,
+      "lon": 77.0478211,
+      "osmType": "way",
+      "osmId": 740035787,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/740035787"
+    },
+    {
+      "id": "way/78799847",
+      "name": "Wastewater Treatment Plant",
+      "operator": "L&T Construction; Passavant",
+      "description": null,
+      "lat": 28.7279486,
+      "lon": 77.1857227,
+      "osmType": "way",
+      "osmId": 78799847,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": "318 MLD Wastewater Treatment Plant"
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/78799847"
+    },
+    {
+      "id": "relation/15924378",
+      "name": "Water Softening Plant",
+      "operator": null,
+      "description": null,
+      "lat": 28.6119948,
+      "lon": 77.0346096,
+      "osmType": "relation",
+      "osmId": 15924378,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/relation/15924378"
+    },
+    {
+      "id": "way/204980209",
+      "name": "Water Treatment Plant",
+      "operator": null,
+      "description": null,
+      "lat": 28.6908842,
+      "lon": 77.2260979,
+      "osmType": "way",
+      "osmId": 204980209,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/204980209"
+    },
+    {
+      "id": "way/632857887",
+      "name": "Water Treatment Plant",
+      "operator": null,
+      "description": null,
+      "lat": 28.516227,
+      "lon": 77.191827,
+      "osmType": "way",
+      "osmId": 632857887,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/632857887"
+    },
+    {
+      "id": "way/1178355679",
+      "name": "Water Treatment Plant",
+      "operator": "Hari Ions (India) Pvt. Ltd.",
+      "description": null,
+      "lat": 28.6118043,
+      "lon": 77.0392382,
+      "osmType": "way",
+      "osmId": 1178355679,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/1178355679"
+    },
+    {
+      "id": "way/290140351",
+      "name": "Wazirabad Water Works",
+      "operator": "Delhi Jal Board",
+      "description": null,
+      "lat": 28.7160746,
+      "lon": 77.2311246,
+      "osmType": "way",
+      "osmId": 290140351,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/290140351"
+    },
+    {
+      "id": "node/12352459034",
+      "name": null,
+      "operator": null,
+      "description": null,
+      "lat": 28.6495393,
+      "lon": 77.3169075,
+      "osmType": "node",
+      "osmId": 12352459034,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/node/12352459034"
+    },
+    {
+      "id": "way/78484495",
+      "name": null,
+      "operator": null,
+      "description": null,
+      "lat": 28.7258493,
+      "lon": 77.1046007,
+      "osmType": "way",
+      "osmId": 78484495,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/78484495"
+    },
+    {
+      "id": "way/120117042",
+      "name": null,
+      "operator": null,
+      "description": null,
+      "lat": 28.4956255,
+      "lon": 77.0758684,
+      "osmType": "way",
+      "osmId": 120117042,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/120117042"
+    },
+    {
+      "id": "way/171438686",
+      "name": null,
+      "operator": null,
+      "description": null,
+      "lat": 28.7382072,
+      "lon": 77.1001164,
+      "osmType": "way",
+      "osmId": 171438686,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/171438686"
+    },
+    {
+      "id": "way/190028640",
+      "name": null,
+      "operator": null,
+      "description": null,
+      "lat": 28.4624664,
+      "lon": 76.9724598,
+      "osmType": "way",
+      "osmId": 190028640,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/190028640"
+    },
+    {
+      "id": "way/190333719",
+      "name": null,
+      "operator": null,
+      "description": null,
+      "lat": 28.5245199,
+      "lon": 77.1670865,
+      "osmType": "way",
+      "osmId": 190333719,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/190333719"
+    },
+    {
+      "id": "way/209495077",
+      "name": null,
+      "operator": null,
+      "description": null,
+      "lat": 28.5872184,
+      "lon": 77.0230653,
+      "osmType": "way",
+      "osmId": 209495077,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/209495077"
+    },
+    {
+      "id": "way/265401583",
+      "name": null,
+      "operator": null,
+      "description": null,
+      "lat": 28.6571673,
+      "lon": 77.0516554,
+      "osmType": "way",
+      "osmId": 265401583,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/265401583"
+    },
+    {
+      "id": "way/269880938",
+      "name": null,
+      "operator": null,
+      "description": null,
+      "lat": 28.420284,
+      "lon": 77.0292383,
+      "osmType": "way",
+      "osmId": 269880938,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/269880938"
+    },
+    {
+      "id": "way/282528836",
+      "name": null,
+      "operator": null,
+      "description": null,
+      "lat": 28.4735799,
+      "lon": 76.9958235,
+      "osmType": "way",
+      "osmId": 282528836,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/282528836"
+    },
+    {
+      "id": "way/283617842",
+      "name": null,
+      "operator": null,
+      "description": null,
+      "lat": 28.6101382,
+      "lon": 77.3279289,
+      "osmType": "way",
+      "osmId": 283617842,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/283617842"
+    },
+    {
+      "id": "way/283808811",
+      "name": null,
+      "operator": null,
+      "description": null,
+      "lat": 28.6273687,
+      "lon": 77.3320365,
+      "osmType": "way",
+      "osmId": 283808811,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/283808811"
+    },
+    {
+      "id": "way/283808812",
+      "name": null,
+      "operator": null,
+      "description": null,
+      "lat": 28.6278041,
+      "lon": 77.3297774,
+      "osmType": "way",
+      "osmId": 283808812,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/283808812"
+    },
+    {
+      "id": "way/294042636",
+      "name": null,
+      "operator": null,
+      "description": null,
+      "lat": 28.5761722,
+      "lon": 77.2601763,
+      "osmType": "way",
+      "osmId": 294042636,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/294042636"
+    },
+    {
+      "id": "way/297015001",
+      "name": null,
+      "operator": null,
+      "description": null,
+      "lat": 28.8084525,
+      "lon": 77.0817519,
+      "osmType": "way",
+      "osmId": 297015001,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/297015001"
+    },
+    {
+      "id": "way/312181572",
+      "name": null,
+      "operator": null,
+      "description": null,
+      "lat": 28.4564703,
+      "lon": 76.9677275,
+      "osmType": "way",
+      "osmId": 312181572,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/312181572"
+    },
+    {
+      "id": "way/408087289",
+      "name": null,
+      "operator": null,
+      "description": null,
+      "lat": 28.635087,
+      "lon": 77.1271711,
+      "osmType": "way",
+      "osmId": 408087289,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/408087289"
+    },
+    {
+      "id": "way/427406081",
+      "name": null,
+      "operator": null,
+      "description": null,
+      "lat": 28.6705282,
+      "lon": 77.0487852,
+      "osmType": "way",
+      "osmId": 427406081,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/427406081"
+    },
+    {
+      "id": "way/533569863",
+      "name": null,
+      "operator": null,
+      "description": null,
+      "lat": 28.5236673,
+      "lon": 77.1460773,
+      "osmType": "way",
+      "osmId": 533569863,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/533569863"
+    },
+    {
+      "id": "way/662198583",
+      "name": null,
+      "operator": null,
+      "description": null,
+      "lat": 28.739834,
+      "lon": 77.2735459,
+      "osmType": "way",
+      "osmId": 662198583,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/662198583"
+    },
+    {
+      "id": "way/773678101",
+      "name": null,
+      "operator": null,
+      "description": null,
+      "lat": 28.6989582,
+      "lon": 76.8810703,
+      "osmType": "way",
+      "osmId": 773678101,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/773678101"
+    },
+    {
+      "id": "way/1162641621",
+      "name": null,
+      "operator": null,
+      "description": null,
+      "lat": 28.481482,
+      "lon": 76.9317386,
+      "osmType": "way",
+      "osmId": 1162641621,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/1162641621"
+    },
+    {
+      "id": "way/1256745061",
+      "name": null,
+      "operator": null,
+      "description": null,
+      "lat": 28.53358,
+      "lon": 77.2234205,
+      "osmType": "way",
+      "osmId": 1256745061,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/1256745061"
+    },
+    {
+      "id": "way/1358003732",
+      "name": null,
+      "operator": null,
+      "description": null,
+      "lat": 28.6031768,
+      "lon": 77.1357417,
+      "osmType": "way",
+      "osmId": 1358003732,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/1358003732"
+    },
+    {
+      "id": "way/1379295149",
+      "name": null,
+      "operator": null,
+      "description": null,
+      "lat": 28.6561619,
+      "lon": 77.1253882,
+      "osmType": "way",
+      "osmId": 1379295149,
+      "tags": {
+        "man_made": "wastewater_plant",
+        "amenity": null,
+        "official_name": null
+      },
+      "osmUrl": "https://www.openstreetmap.org/way/1379295149"
+    }
+  ]
+}

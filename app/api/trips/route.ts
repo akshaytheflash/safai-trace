@@ -12,17 +12,19 @@ function genOtp() {
 
 export async function POST(req: Request) {
   const body = await req.json();
-  const { householdLabel, householdAddress, householdPincode, householdLat, householdLon, plantName, plantAddress, plantLat, plantLon, operatorName, vehicleNo } = body;
+  const { householdLabel, householdAddress, householdPincode, householdLat, householdLon, plantName, plantAddress, plantLat, plantLon, operatorName, vehicleNo, quotedPrice } = body;
   if (!householdAddress || householdLat == null || householdLon == null || !plantName || plantLat == null || plantLon == null || !operatorName || !vehicleNo) {
     return NextResponse.json({ error: "Missing fields. Geocode household + plant first (real coords required)." }, { status: 400 });
   }
   let distanceKm: number | null = null;
   let durationMin: number | null = null;
-  let routeSource = "OSRM live";
+  let routeGeometry: string | null = null;
+  const routeSource = "OSRM live";
   try {
     const r = await osrmRoute(Number(householdLat), Number(householdLon), Number(plantLat), Number(plantLon));
     distanceKm = r.distanceKm;
     durationMin = r.durationMin;
+    routeGeometry = JSON.stringify(r.geometry);
   } catch (e) {
     return NextResponse.json({ error: `OSRM failed: ${e instanceof Error ? e.message : "error"}. No fake distance shown — fix coords or retry.` }, { status: 502 });
   }
@@ -42,6 +44,8 @@ export async function POST(req: Request) {
     distanceKm,
     durationMin,
     routeSource,
+    routeGeometry,
+    quotedPrice: Number.isFinite(Number(quotedPrice)) && Number(quotedPrice) > 0 ? Number(quotedPrice) : null,
     status: "BOOKED",
     plantOtp: genOtp(),
     receiptId: null,

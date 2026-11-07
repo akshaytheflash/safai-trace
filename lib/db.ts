@@ -20,6 +20,8 @@ export type Trip = {
   distanceKm: number | null;
   durationMin: number | null;
   routeSource: string;
+  routeGeometry: string | null;
+  quotedPrice: number | null;
   status: TripStatus;
   plantOtp: string;
   receiptId: string | null;
@@ -60,6 +62,8 @@ export function getDb(): DatabaseSync {
       distanceKm REAL,
       durationMin REAL,
       routeSource TEXT NOT NULL DEFAULT 'OSRM live',
+      routeGeometry TEXT,
+      quotedPrice REAL,
       status TEXT NOT NULL DEFAULT 'BOOKED',
       plantOtp TEXT NOT NULL,
       receiptId TEXT,
@@ -79,6 +83,14 @@ export function getDb(): DatabaseSync {
       weightNote TEXT DEFAULT ''
     );
   `);
+  // Additive migration for databases created before route geometry / quote capture.
+  for (const col of ["routeGeometry TEXT", "quotedPrice REAL"]) {
+    try {
+      db.exec(`ALTER TABLE trips ADD COLUMN ${col}`);
+    } catch {
+      // Column already exists.
+    }
+  }
   seedPilot();
   return db;
 }
@@ -104,6 +116,8 @@ function seedPilot() {
       distanceKm: 12.88,
       durationMin: 14.1,
       routeSource: "OSRM live (verified 2026-11-06)",
+      routeGeometry: null,
+      quotedPrice: 1800,
       status: "VERIFIED",
       plantOtp: "4821",
       receiptId: "WBR-OKH-20261101-001",
@@ -130,6 +144,8 @@ function seedPilot() {
       distanceKm: 4.09,
       durationMin: 6.1,
       routeSource: "OSRM live (verified 2026-11-06)",
+      routeGeometry: null,
+      quotedPrice: 1800,
       status: "VERIFIED",
       plantOtp: "7310",
       receiptId: "WBR-RB-20261102-004",
@@ -156,6 +172,8 @@ function seedPilot() {
       distanceKm: 12.88,
       durationMin: 14.1,
       routeSource: "OSRM live (verified 2026-11-06)",
+      routeGeometry: null,
+      quotedPrice: 1800,
       status: "FLAGGED",
       plantOtp: "5542",
       receiptId: null,
@@ -182,6 +200,8 @@ function seedPilot() {
       distanceKm: 4.09,
       durationMin: 6.1,
       routeSource: "OSRM live (verified 2026-11-06)",
+      routeGeometry: null,
+      quotedPrice: 1800,
       status: "EN_ROUTE",
       plantOtp: "2098",
       receiptId: null,
@@ -193,9 +213,9 @@ function seedPilot() {
       source: "pilot-collected (geocoded via Nominatim, routed via OSRM)",
     },
   ];
-  const stmt = db!.prepare(`INSERT INTO trips (id,householdLabel,householdAddress,householdPincode,householdLat,householdLon,plantName,plantAddress,plantLat,plantLon,operatorName,vehicleNo,distanceKm,durationMin,routeSource,status,plantOtp,receiptId,verifiedAt,flaggedReason,createdAt,paymentReleased,pilot,source) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+  const stmt = db!.prepare(`INSERT INTO trips (id,householdLabel,householdAddress,householdPincode,householdLat,householdLon,plantName,plantAddress,plantLat,plantLon,operatorName,vehicleNo,distanceKm,durationMin,routeSource,routeGeometry,quotedPrice,status,plantOtp,receiptId,verifiedAt,flaggedReason,createdAt,paymentReleased,pilot,source) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
   for (const t of seed) {
-    stmt.run(t.id, t.householdLabel, t.householdAddress, t.householdPincode, t.householdLat, t.householdLon, t.plantName, t.plantAddress, t.plantLat, t.plantLon, t.operatorName, t.vehicleNo, t.distanceKm, t.durationMin, t.routeSource, t.status, t.plantOtp, t.receiptId, t.verifiedAt, t.flaggedReason, t.createdAt, t.paymentReleased ? 1 : 0, t.pilot ? 1 : 0, t.source);
+    stmt.run(t.id, t.householdLabel, t.householdAddress, t.householdPincode, t.householdLat, t.householdLon, t.plantName, t.plantAddress, t.plantLat, t.plantLon, t.operatorName, t.vehicleNo, t.distanceKm, t.durationMin, t.routeSource, t.routeGeometry, t.quotedPrice, t.status, t.plantOtp, t.receiptId, t.verifiedAt, t.flaggedReason, t.createdAt, t.paymentReleased ? 1 : 0, t.pilot ? 1 : 0, t.source);
     if (t.status === "VERIFIED" && t.receiptId) {
       db!.prepare(`INSERT OR IGNORE INTO receipts (id,tripId,otp,plantName,verifiedAt) VALUES (?,?,?,?,?)`).run(t.receiptId, t.id, t.plantOtp, t.plantName, t.verifiedAt!);
     }
@@ -219,6 +239,8 @@ function rowToTrip(r: Record<string, unknown>): Trip {
     distanceKm: r.distanceKm as number | null,
     durationMin: r.durationMin as number | null,
     routeSource: r.routeSource as string,
+    routeGeometry: (r.routeGeometry as string | null) ?? null,
+    quotedPrice: (r.quotedPrice as number | null) ?? null,
     status: r.status as TripStatus,
     plantOtp: r.plantOtp as string,
     receiptId: r.receiptId as string | null,
@@ -242,8 +264,8 @@ export function getTrip(id: string): Trip | null {
 }
 
 export function createTrip(t: Trip): Trip {
-  getDb().prepare(`INSERT INTO trips (id,householdLabel,householdAddress,householdPincode,householdLat,householdLon,plantName,plantAddress,plantLat,plantLon,operatorName,vehicleNo,distanceKm,durationMin,routeSource,status,plantOtp,receiptId,verifiedAt,flaggedReason,createdAt,paymentReleased,pilot,source) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
-    .run(t.id, t.householdLabel, t.householdAddress, t.householdPincode, t.householdLat, t.householdLon, t.plantName, t.plantAddress, t.plantLat, t.plantLon, t.operatorName, t.vehicleNo, t.distanceKm, t.durationMin, t.routeSource, t.status, t.plantOtp, t.receiptId, t.verifiedAt, t.flaggedReason, t.createdAt, t.paymentReleased ? 1 : 0, t.pilot ? 1 : 0, t.source);
+  getDb().prepare(`INSERT INTO trips (id,householdLabel,householdAddress,householdPincode,householdLat,householdLon,plantName,plantAddress,plantLat,plantLon,operatorName,vehicleNo,distanceKm,durationMin,routeSource,routeGeometry,quotedPrice,status,plantOtp,receiptId,verifiedAt,flaggedReason,createdAt,paymentReleased,pilot,source) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+    .run(t.id, t.householdLabel, t.householdAddress, t.householdPincode, t.householdLat, t.householdLon, t.plantName, t.plantAddress, t.plantLat, t.plantLon, t.operatorName, t.vehicleNo, t.distanceKm, t.durationMin, t.routeSource, t.routeGeometry, t.quotedPrice, t.status, t.plantOtp, t.receiptId, t.verifiedAt, t.flaggedReason, t.createdAt, t.paymentReleased ? 1 : 0, t.pilot ? 1 : 0, t.source);
   return t;
 }
 

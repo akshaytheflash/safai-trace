@@ -31,16 +31,24 @@ export async function geocode(query: string) {
 }
 
 export async function osrmRoute(fromLat: number, fromLon: number, toLat: number, toLon: number) {
-  // OSRM expects lon,lat order
-  const url = `https://router.project-osrm.org/route/v1/driving/${fromLon},${fromLat};${toLon},${toLat}?overview=false`;
+  // OSRM expects lon,lat order. Full geometry is stored so the map draws the
+  // road route that OSRM actually returned — never a decorative straight line.
+  const url = `https://router.project-osrm.org/route/v1/driving/${fromLon},${fromLat};${toLon},${toLat}?overview=full&geometries=geojson&steps=false`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`OSRM HTTP ${res.status}`);
   const data = await res.json();
   if (data.code !== "Ok" || !data.routes?.length) throw new Error(data.message || "OSRM no route");
   const r = data.routes[0];
+  const geometry: [number, number][] = Array.isArray(r.geometry?.coordinates)
+    ? r.geometry.coordinates.map((c: [number, number]) => [
+        Math.round(c[1] * 1e6) / 1e6,
+        Math.round(c[0] * 1e6) / 1e6,
+      ])
+    : [];
   return {
     distanceKm: Math.round((r.distance / 1000) * 100) / 100,
     durationMin: Math.round((r.duration / 60) * 10) / 10,
+    geometry,
   };
 }
 
