@@ -28,8 +28,9 @@ body {
   background: var(--asphalt-3);
   color: var(--concrete);
   font-family: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
-  font-size: 14px;
-  line-height: 1.45;
+  font-size: 15.5px;
+  line-height: 1.5;
+  font-weight: 450;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -752,3 +753,37 @@ select { appearance: none; background-image: linear-gradient(45deg, transparent 
 .septage-live .septage-total { font-size: 13px; color: var(--concrete); }
 .septage-live .septage-total strong { font-family: "Barlow Condensed", sans-serif; font-size: 30px; font-weight: 700; line-height: 1; margin-right: 4px; color: var(--teal); }
 .septage-live .fine, .septage-live a { font-size: 10px; color: var(--concrete-3); }
+
+/* ——— legibility pass ——— */
+.brand p, .mast-date, .light, .chain-pay, .pilot-tag,
+.panel-title span, .bar-meta, .bar-stamp, .key-note,
+.fact dt, .dossier-status small, .gate-label, .gate-hint,
+.section-head p, .source-block p, .source-links a,
+.foot p, .foot li, .foot-base { font-size: 12.5px; line-height: 1.5; }
+.queue-id, .queue-plant, .queue-km { font-size: 12px; }
+.queue-status { font-size: 11px; font-weight: 600; }
+.facts dt { font-weight: 600; color: var(--concrete-2); }
+.facts dd { font-size: 14.5px; }
+.btn { font-size: 12.5px; font-weight: 600; }
+.station-name { font-size: 18px; }
+.station-note { font-size: 11px; }
+.chain-caption { font-size: 12.5px; }
+.fine { font-size: 11.5px; }
+
+/* ——— payment card ——— */
+.float-pay {
+  position: fixed; right: clamp(14px, 3vw, 30px); bottom: clamp(14px, 3vw, 26px); z-index: 60;
+  width: min(300px, calc(100vw - 28px)); padding: 12px 14px 13px;
+  background: var(--paper); border: 1px solid var(--concrete); border-top: 4px solid var(--teal);
+  box-shadow: 0 16px 40px -22px rgba(29, 42, 56, 0.6);
+  animation: pay-in 240ms ease-out both;
+}
+@keyframes pay-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+.fp-label { font-size: 11.5px; letter-spacing: 0.04em; color: var(--concrete-3); margin: 0 0 2px; }
+.fp-paid { font-family: "Barlow Condensed", sans-serif; font-size: 36px; font-weight: 700; line-height: 1; color: var(--teal); margin: 0 0 10px; font-variant-numeric: tabular-nums; }
+.fp-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; border-top: 1px solid var(--line-strong); padding-top: 9px; }
+.fp-k { display: block; font-size: 11px; color: var(--concrete-3); }
+.fp-v { display: block; font-family: "Barlow Condensed", sans-serif; font-size: 21px; font-weight: 700; color: var(--concrete); font-variant-numeric: tabular-nums; }
+.fp-note { margin: 10px 0 0; font-size: 11.5px; line-height: 1.5; color: var(--red); border-left: 3px solid var(--red); padding-left: 8px; }
+@media (prefers-reduced-motion: reduce) { .float-pay { animation: none; } }
+@media print { .float-pay { display: none !important; } }

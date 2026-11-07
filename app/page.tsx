@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import PlantMap from "./components/PlantMap";
+import FloatingPayout from "./components/FloatingPayout";
 import type { Plant } from "@/lib/plants";
 import {
   CPHEEO,
@@ -664,6 +665,8 @@ export default function Home() {
           <button type="button" onClick={() => setMsg(null)} aria-label="Dismiss message">×</button>
         </div>
       )}
+
+      <FloatingPayout trips={trips} />
 
       <main className="deck">
         <aside className="queue" aria-label="Dispatch queue">
