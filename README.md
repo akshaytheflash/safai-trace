@@ -39,13 +39,13 @@ npm run dev            # → http://localhost:3000
 `.env` (server-side ONLY, never commit — see `.env.example`):
 
 ```env
-BHARATCODE_API_KEY=<your key>          # BharatCode OpenAI-compatible, docs: https://bharatcode.ai/build
-BHARATCODE_BASE_URL=https://bharatcode.ai/api/model/v1
+BHARATCODE_API_KEY=<your key>          # server-side only
+BHARATCODE_BASE_URL=<OpenAI-compatible base URL, preset in .env.example>
 BHARATCODE_MODEL=qwen-3.8-27b
 DATA_GOV_IN_KEY=                       # optional, free user key from https://api.data.gov.in
 ```
 
-**LLM:** BharatCode, `POST /chat/completions`, model `qwen-3.8-27b` (262k ctx), Bearer key server-side only. The model is 503-prone, so `lib/llm.ts` does exponential backoff (4 attempts) and falls back to Hindi templates for OTP scripts/complaint drafts — the field flow never blocks on the LLM.
+**LLM:** `qwen-3.8-27b`, `POST /chat/completions` (262k ctx), Bearer key server-side only. The model is 503-prone, so `lib/llm.ts` does exponential backoff (4 attempts) and falls back to Hindi templates for OTP scripts/complaint drafts — the field flow never blocks on the LLM.
 
 **Storage:** SQLite at `data/safai.db` (auto-created, WAL). Seeded with 4 pilot trips, each labelled `pilot-collected`. Delete the file to reset.
 
@@ -57,9 +57,9 @@ DATA_GOV_IN_KEY=                       # optional, free user key from https://ap
 | Nominatim (OSM) | household/plant geocoding — real coords | `https://nominatim.openstreetmap.org/search` | Error + retry; booking stays disabled (never fake coords) |
 | OSRM | trip distance/duration | `https://router.project-osrm.org/route/v1/driving/{lon,lat;lon,lat}` | Error, no invented distance |
 | data.gov.in | sanitation datasets (optional) | `https://api.data.gov.in/resource/...?api-key={DATA_GOV_IN_KEY}` | Documented; free user key required — core flow doesn't depend on it |
-| BharatCode | Hindi OTP scripts, ULB complaint drafts | `https://bharatcode.ai/api/model/v1/chat/completions` | Backoff → template fallback |
+| Model (`qwen-3.8-27b`) | Hindi OTP scripts, ULB complaint drafts | OpenAI-compatible `/chat/completions` | Backoff → template fallback |
 
-Health check: open the app header (live pills) or `GET /api/health`. Test verified 2026-11-06: postal (110001 → Central Delhi, 21 offices), Nominatim (Connaught Place → 28.6317,77.2193; Okhla STP → 28.5475,77.2828), OSRM (Connaught → Okhla = 12.88 km / 14.1 min; → Rashtrapati Bhavan STP = 4.09 km / 6.1 min). BharatCode returned `internal_error` on first call (expected 503-prone behaviour) — handled by backoff + fallback.
+Health check: open the app header (live pills) or `GET /api/health`. Test verified 2026-11-06: postal (110001 → Central Delhi, 21 offices), Nominatim (Connaught Place → 28.6317,77.2193; Okhla STP → 28.5475,77.2828), OSRM (Connaught → Okhla = 12.88 km / 14.1 min; → Rashtrapati Bhavan STP = 4.09 km / 6.1 min). The model returned `internal_error` on first call (expected 503-prone behaviour) — handled by backoff + fallback.
 
 ## Pilot plan — one operator, then ULB
 
@@ -84,7 +84,7 @@ Computed live from pilot rows (`/api/stats`): **trips verified**, **% safely dis
 
 - `GET /api/pincode?pincode=110001` · `GET /api/geocode?q=...` · `GET /api/route?fromLat=&fromLon=&toLat=&toLon=`
 - `GET/POST /api/trips` · `POST /api/trips/[id]/status` · `POST /api/trips/[id]/verify` (OTP + receipt)
-- `GET /api/stats` (ULB KPIs) · `POST /api/ai` (BharatCode, kind: otp|complaint|explain) · `GET /api/health`
+- `GET /api/stats` (ULB KPIs) · `POST /api/ai` (model, kind: otp|complaint|explain) · `GET /api/health`
 
 ## Differentiator vs SanitaSafe
 
@@ -97,7 +97,7 @@ app/page.tsx        # 4-tab field UI (book / operator / ULB / how) + citations f
 app/api/*/route.ts  # live-API proxies, trips CRUD, verify, stats, AI, health
 lib/db.ts           # node:sqlite store + pilot seed (labelled)
 lib/apis.ts         # India Post / Nominatim / OSRM (live only)
-lib/llm.ts          # BharatCode + backoff + Hindi templates
+lib/llm.ts          # model client + backoff + Hindi templates
 lib/data.ts         # cited govt stats
 data/safai.db       # runtime SQLite (gitignored)
 ```

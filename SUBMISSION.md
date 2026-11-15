@@ -19,11 +19,11 @@ Every desludging trip gets a plant OTP + weighbridge receipt as proof of safe di
 
 ## Solution (MVP — working)
 
-Booking (pincode + geocoded household/plant + OSRM route) → operator trip (BOOKED→EN_ROUTE→AT_PLANT) → plant OTP + weighbridge receipt verification → ULB dashboard (% safely disposed, hotspots, map, verification log). AI helper (BharatCode qwen-3.8-27b) drafts Hindi OTP scripts + ULB complaints with 503 backoff/template fallback.
+Booking (pincode + geocoded household/plant + OSRM route) → operator trip (BOOKED→EN_ROUTE→AT_PLANT) → plant OTP + weighbridge receipt verification → ULB dashboard (% safely disposed, hotspots, map, verification log). AI helper (`qwen-3.8-27b`) drafts Hindi OTP scripts + ULB complaints with 503 backoff/template fallback.
 
 ## Live APIs (tested, no mocking)
 
-India Post pincode · Nominatim geocoding (real coords) · OSRM routing · data.gov.in (optional, key-based) · BharatCode LLM. If Nominatim/OSRM is down the app errors + retries and never shows fake coords/distances. Trip rows are explicitly labelled **pilot-collected**.
+India Post pincode · Nominatim geocoding (real coords) · OSRM routing · data.gov.in (optional, key-based) · `qwen-3.8-27b` model. If Nominatim/OSRM is down the app errors + retries and never shows fake coords/distances. Trip rows are explicitly labelled **pilot-collected**.
 
 ## Pilot metrics (from pilot rows, `/api/stats`)
 
