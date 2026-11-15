@@ -3,6 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import type { LayerGroup, Map as LeafletMap } from "leaflet";
 import type { Plant } from "@/lib/plants";
+import { useI18n } from "./I18nProvider";
+import type { MessageKey } from "@/lib/i18n/messages/en";
+
+type Translate = (key: MessageKey, vars?: Record<string, string | number>) => string;
 
 export type MapTrip = {
   id: string;
@@ -34,13 +38,14 @@ const STATUS_COLOR: Record<string, string> = {
   FLAGGED: "#C44536",
 };
 
-function displayName(p: Plant) {
-  if (!p.name) return "Unnamed wastewater plant";
-  if (/^\d+(\.\d+)?\s*MGD$/i.test(p.name)) return `Unnamed plant · ${p.name}`;
+function displayName(p: Plant, t: Translate) {
+  if (!p.name) return t("plant.unnamed");
+  if (/^\d+(\.\d+)?\s*MGD$/i.test(p.name)) return t("plant.unnamedWithName", { name: p.name });
   return p.name;
 }
 
 export default function PlantMap({ plants, trip, selectedPlantId, onSelectPlant }: Props) {
+  const { t } = useI18n();
   const elRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const plantLayerRef = useRef<LayerGroup | null>(null);
@@ -123,7 +128,7 @@ export default function PlantMap({ plants, trip, selectedPlantId, onSelectPlant 
         });
         const operator = p.operator ? `<br/><span>${escapeHtml(p.operator)}</span>` : "";
         marker.bindPopup(
-          `<div class="map-pop"><strong>${escapeHtml(displayName(p))}</strong>${operator}<br/><span>OSM ${escapeHtml(p.id)}</span><br/><a href="${p.osmUrl}" target="_blank" rel="noreferrer">Open on OSM</a></div>`,
+          `<div class="map-pop"><strong>${escapeHtml(displayName(p, t))}</strong>${operator}<br/><span>OSM ${escapeHtml(p.id)}</span><br/><a href="${p.osmUrl}" target="_blank" rel="noreferrer">${escapeHtml(t("common.openOnOsm"))}</a></div>`,
           { closeButton: false },
         );
         marker.on("click", () => onSelectPlant?.(p));
@@ -133,7 +138,7 @@ export default function PlantMap({ plants, trip, selectedPlantId, onSelectPlant 
     return () => {
       cancelled = true;
     };
-  }, [plants, selectedPlantId, onSelectPlant, ready]);
+  }, [plants, selectedPlantId, onSelectPlant, ready, t]);
 
   useEffect(() => {
     if (!ready) return;
@@ -170,7 +175,7 @@ export default function PlantMap({ plants, trip, selectedPlantId, onSelectPlant 
           ],
           { color, weight: 2, opacity: 0.75, dashArray: "5 7" },
         )
-          .bindTooltip("Straight line between endpoints — road geometry was not stored for this seeded pilot row.", {
+          .bindTooltip(t("map.straightLine"), {
             sticky: true,
             className: "map-tip",
           })
@@ -184,7 +189,7 @@ export default function PlantMap({ plants, trip, selectedPlantId, onSelectPlant 
         fillColor: flagged ? "#C44536" : "#C9C6BE",
         fillOpacity: 1,
       })
-        .bindTooltip("PICKUP", { permanent: true, direction: "top", className: "map-label" })
+        .bindTooltip(t("map.pickup"), { permanent: true, direction: "top", className: "map-label" })
         .addTo(layer);
       pickup.on("click", () => map.openPopup(`<div class="map-pop"><strong>${escapeHtml(trip.householdLabel)}</strong><br/>${escapeHtml(trip.householdAddress)}</div>`, [trip.householdLat, trip.householdLon]));
 
@@ -195,7 +200,7 @@ export default function PlantMap({ plants, trip, selectedPlantId, onSelectPlant 
         fillColor: "#2C6E63",
         fillOpacity: 0.85,
       })
-        .bindTooltip("PLANT", { permanent: true, direction: "right", className: "map-label" })
+        .bindTooltip(t("map.plant"), { permanent: true, direction: "right", className: "map-label" })
         .bindPopup(`<div class="map-pop"><strong>${escapeHtml(trip.plantName)}</strong><br/>${escapeHtml(trip.plantAddress)}</div>`)
         .addTo(layer);
 
@@ -214,14 +219,14 @@ export default function PlantMap({ plants, trip, selectedPlantId, onSelectPlant 
     return () => {
       cancelled = true;
     };
-  }, [trip, ready]);
+  }, [trip, ready, t]);
 
   return (
     <div className="map-shell">
-      <div ref={elRef} className="map-canvas" role="application" aria-label="Map of wastewater treatment plants and the selected trip" />
+      <div ref={elRef} className="map-canvas" role="application" aria-label={t("map.canvasAria")} />
       {tileError && (
         <div className="map-tile-error">
-          Basemap tiles did not load. Plant coordinates and the trip line are still real OSM/OSRM data.
+          {t("map.tileError")}
         </div>
       )}
     </div>

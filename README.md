@@ -2,6 +2,8 @@
 
 **Code for a Billion (Code for India) · Impact: Sanitation**
 
+**Built in** [AgentFoundry](https://agentfoundry.me) (AF), the official IDE for Code for a Billion.
+
 Safai Trace closes the last mile of faecal sludge management: it proves whether a specific tanker trip actually disposed safely at an FSTP/STP. Flow: **household booking → GPS trip → plant QR/weighbridge OTP + receipt scan as proof of safe disposal → ULB dashboard (% safely disposed, dumping hotspots).** No plant receipt = flagged, no payment. The tool goes to the **private tanker operator first, ULB second**.
 
 > Not a NASA/planning tool. This is field operations — chain-of-custody for every desludging trip.
@@ -99,6 +101,28 @@ lib/llm.ts          # BharatCode + backoff + Hindi templates
 lib/data.ts         # cited govt stats
 data/safai.db       # runtime SQLite (gitignored)
 ```
+
+## Languages
+
+The console is localised in the browser. The certificate route and generated
+complaint / OTP text stay in English by design.
+
+- **Locales:** `en` (source), plus `hi`, `bn`, `mr`, `te`, `ta`, `gu`, `ur`, `kn`,
+  `or`, `ml`. Urdu renders right-to-left; the rest are LTR.
+- **Switcher:** the globe control in the masthead (`.mast-lang`). It persists the
+  choice in the `i18n_locale` cookie (one year) and in `localStorage`, then calls
+  `router.refresh()` so server components re-render with the new locale. The root
+  layout sets `<html lang dir>` and loads the Noto Indic fonts.
+- **Dictionaries:** `lib/i18n/messages/en.ts` is the source of truth; every other
+  locale is a `Partial` of it and falls back to English for missing keys. The
+  registry, cookie name and `dirFor()` live in `lib/i18n/config.ts`.
+- **Add a key:** add the English copy to `lib/i18n/messages/en.ts` (namespaced,
+  e.g. `book.title`), call `t("book.title")` or `t("key", { name })` from the
+  component, then run `node scripts/check-i18n.mjs` to see which locales still
+  need it. Use one sentence with `{placeholders}` rather than concatenation.
+- **English-only artifacts:** `app/certificate/[id]` (official certificate) and
+  the generated complaint text / OTP scripts. The UI shows a translated
+  `doc.englishOnly` note above the complaint text; these blocks keep `lang="en"`.
 
 ## Data & safety rules observed
 

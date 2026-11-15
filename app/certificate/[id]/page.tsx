@@ -16,7 +16,7 @@ export default function Certificate({ params }: { params: { id: string } }) {
   const verified = trip.status === "VERIFIED" && Boolean(trip.receiptId);
 
   return (
-    <main className="cert-page">
+    <main className="cert-page" lang="en" dir="ltr">
       <div className="cert-actions no-print">
         <Link href="/">← Back to the console</Link>
         {verified && <PrintButton />}

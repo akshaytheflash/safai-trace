@@ -4,6 +4,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import PlantMap from "./components/PlantMap";
 import FloatingPayout from "./components/FloatingPayout";
+import LanguageSwitcher from "./components/LanguageSwitcher";
+import { useI18n } from "./components/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/messages/en";
 import type { Plant } from "@/lib/plants";
 import {
   CPHEEO,
@@ -75,27 +78,27 @@ type PlantsPayload = {
 
 type CallLog = { id: string; label: string; status: number | null; note: string; at: string };
 
-const STATUS_LABEL: Record<string, string> = {
-  BOOKED: "BOOKED",
-  EN_ROUTE: "EN ROUTE",
-  AT_PLANT: "AT PLANT",
-  VERIFIED: "VERIFIED",
-  FLAGGED: "FLAGGED",
+const STATUS_LABEL: Record<string, MessageKey> = {
+  BOOKED: "status.BOOKED",
+  EN_ROUTE: "status.EN_ROUTE",
+  AT_PLANT: "status.AT_PLANT",
+  VERIFIED: "status.VERIFIED",
+  FLAGGED: "status.FLAGGED",
 };
 
-const STATIONS = [
-  { key: "BOOKED", name: "Booked", note: "job logged" },
-  { key: "EN_ROUTE", name: "En route", note: "tanker moving" },
-  { key: "AT_PLANT", name: "At plant", note: "at the gate" },
-  { key: "VERIFIED", name: "Verified", note: "receipt sealed" },
+const STATIONS: { key: string; nameKey: MessageKey; noteKey: MessageKey }[] = [
+  { key: "BOOKED", nameKey: "chain.station.booked", noteKey: "chain.station.bookedNote" },
+  { key: "EN_ROUTE", nameKey: "chain.station.enRoute", noteKey: "chain.station.enRouteNote" },
+  { key: "AT_PLANT", nameKey: "chain.station.atPlant", noteKey: "chain.station.atPlantNote" },
+  { key: "VERIFIED", nameKey: "chain.station.verified", noteKey: "chain.station.verifiedNote" },
 ];
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: "book", label: "Book a trip" },
-  { id: "norms", label: "Desludging norms" },
-  { id: "price", label: "Price check" },
-  { id: "act", label: "Act on a dumping" },
-  { id: "oversight", label: "Oversight" },
+const TABS: { id: Tab; labelKey: MessageKey }[] = [
+  { id: "book", labelKey: "tabs.book" },
+  { id: "norms", labelKey: "tabs.norms" },
+  { id: "price", labelKey: "tabs.price" },
+  { id: "act", labelKey: "tabs.act" },
+  { id: "oversight", labelKey: "tabs.oversight" },
 ];
 
 function fmtDateTime(iso: string | null) {
@@ -108,10 +111,25 @@ function fmtDate(iso: string | null | undefined) {
   return new Date(iso).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-function plantDisplayName(p: Plant) {
+function plantDisplayName(p: Plant, tr: (key: MessageKey, vars?: Record<string, string | number>) => string) {
+  if (!p.name) return tr("plant.unnamed");
+  if (/^\d+(\.\d+)?\s*MGD$/i.test(p.name)) return tr("plant.unnamedWithName", { name: p.name });
+  return p.name;
+}
+
+/** Stable English fallback used in API payloads, never in the interface. */
+function plantPayloadName(p: Plant) {
   if (!p.name) return "Unnamed wastewater plant";
   if (/^\d+(\.\d+)?\s*MGD$/i.test(p.name)) return `Unnamed plant · ${p.name}`;
   return p.name;
+}
+
+function tripStatusLabel(
+  t: (key: MessageKey, vars?: Record<string, string | number>) => string,
+  status: string
+) {
+  const key = STATUS_LABEL[status];
+  return key ? t(key) : status;
 }
 
 function csvCell(v: unknown) {
@@ -120,6 +138,7 @@ function csvCell(v: unknown) {
 }
 
 export default function Home() {
+  const { t: tr } = useI18n();
   const [tab, setTab] = useState<Tab>("book");
   const [trips, setTrips] = useState<Trip[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -192,64 +211,64 @@ export default function Home() {
         const r = await fetch(`/api/plants${refresh ? "?refresh=1" : ""}`, { cache: "no-store" });
         const d = (await r.json()) as PlantsPayload;
         const note = d.ok
-          ? `${d.source}${d.stale ? " (stale)" : ""}${d.liveError ? ` · live: ${d.liveError}` : ""}`
-          : d.error || "plant map unavailable";
+          ? `${d.source}${d.stale ? tr("log.staleSuffix") : ""}${d.liveError ? tr("log.liveSuffix", { error: d.liveError }) : ""}`
+          : d.error || tr("log.plantMapUnavailable");
         logCall(`GET /api/plants${refresh ? "?refresh=1" : ""}`, r.status, note);
         setPlantMeta(d);
         if (d.ok && Array.isArray(d.plants)) setPlants(d.plants);
-        if (!d.ok) setMsg({ kind: "err", text: d.error || "Plant map unavailable. Open the OSM link or retry." });
+        if (!d.ok) setMsg({ kind: "err", text: d.error || tr("error.plantMap") });
         else if (refresh) {
           setMsg(
             d.stale
-              ? { kind: "err", text: `Overpass refresh failed (${d.liveError || "all mirrors"}). Showing the dated OSM snapshot — no coordinates were invented.` }
-              : { kind: "ok", text: `Plant register refreshed live from ${d.source === "overpass-live" ? "Overpass" : d.source}.` },
+              ? { kind: "err", text: tr("error.overpassRefresh", { error: d.liveError || tr("map.allMirrorsFailed") }) }
+              : { kind: "ok", text: tr("toast.plantsRefreshed", { source: d.source === "overpass-live" ? "Overpass" : String(d.source ?? "") }) },
           );
         }
       } catch (e) {
-        logCall("GET /api/plants", null, e instanceof Error ? e.message : "network error");
-        setPlantMeta({ ok: false, error: e instanceof Error ? e.message : "Plant map unavailable" });
-        setMsg({ kind: "err", text: "Plant map unavailable. Retry or open OpenStreetMap." });
+        logCall("GET /api/plants", null, e instanceof Error ? e.message : tr("log.networkError"));
+        setPlantMeta({ ok: false, error: e instanceof Error ? e.message : tr("error.plantMapRetry") });
+        setMsg({ kind: "err", text: tr("error.plantMapRetry") });
       } finally {
         setPlantsRefreshing(false);
         setPlantsLoading(false);
       }
     },
-    [logCall],
+    [logCall, tr],
   );
 
   const refreshTrips = useCallback(async () => {
     try {
-      const [tr, sr] = await Promise.all([fetch("/api/trips", { cache: "no-store" }), fetch("/api/stats", { cache: "no-store" })]);
-      const td = await tr.json();
-      const sd = await sr.json();
-      logCall("GET /api/trips", tr.status, `${td.trips?.length ?? 0} pilot trips`);
-      logCall("GET /api/stats", sr.status, "ULB KPIs recomputed from pilot rows");
+      const [tripsRes, statsRes] = await Promise.all([fetch("/api/trips", { cache: "no-store" }), fetch("/api/stats", { cache: "no-store" })]);
+      const td = await tripsRes.json();
+      const sd = await statsRes.json();
+      logCall("GET /api/trips", tripsRes.status, tr("log.pilotTrips", { count: td.trips?.length ?? 0 }));
+      logCall("GET /api/stats", statsRes.status, tr("log.kpis"));
       setTrips((td.trips || []) as Trip[]);
       setStats((sd.stats || null) as Stats | null);
     } catch (e) {
-      logCall("GET /api/trips + /api/stats", null, e instanceof Error ? e.message : "network error");
+      logCall("GET /api/trips + /api/stats", null, e instanceof Error ? e.message : tr("log.networkError"));
     }
-  }, [logCall]);
+  }, [logCall, tr]);
 
   useEffect(() => {
     (async () => {
-      const [tr, sr, hr] = await Promise.all([
+      const [tripsRes, statsRes, healthRes] = await Promise.all([
         fetch("/api/trips", { cache: "no-store" }),
         fetch("/api/stats", { cache: "no-store" }),
         fetch("/api/health", { cache: "no-store" }),
       ]);
-      const td = await tr.json();
-      const sd = await sr.json();
-      const hd = (await hr.json()) as Health;
-      logCall("GET /api/trips", tr.status, `${td.trips?.length ?? 0} pilot trips`);
-      logCall("GET /api/stats", sr.status, "ULB KPIs recomputed from pilot rows");
-      logCall("GET /api/health", hr.status, hd.apis ? Object.entries(hd.apis).map(([k, v]) => `${k}:${v === "ok" ? "ok" : "down"}`).join(" · ") : "health unavailable");
+      const td = await tripsRes.json();
+      const sd = await statsRes.json();
+      const hd = (await healthRes.json()) as Health;
+      logCall("GET /api/trips", tripsRes.status, tr("log.pilotTrips", { count: td.trips?.length ?? 0 }));
+      logCall("GET /api/stats", statsRes.status, tr("log.kpis"));
+      logCall("GET /api/health", healthRes.status, hd.apis ? Object.entries(hd.apis).map(([k, v]) => `${k}:${v === "ok" ? "ok" : "down"}`).join(" · ") : tr("log.healthUnavailable"));
       setTrips((td.trips || []) as Trip[]);
       setStats((sd.stats || null) as Stats | null);
       setHealth(hd);
       loadPlants(false);
     })();
-  }, [loadPlants, logCall]);
+  }, [loadPlants, logCall, tr]);
 
   useEffect(() => {
     if (plants.length && !plantId) {
@@ -269,8 +288,8 @@ export default function Home() {
   const selectedPlant = useMemo(() => plants.find((p) => p.id === plantId) || null, [plants, plantId]);
   const namedPlants = useMemo(() => plants.filter((p) => p.name), [plants]);
 
-  const norm = useMemo(() => calculateDesludging(persons, tankLitres), [persons, tankLitres]);
-  const price = useMemo(() => checkPrice(Number(quote)), [quote]);
+  const norm = useMemo(() => calculateDesludging(persons, tankLitres, tr), [persons, tankLitres, tr]);
+  const price = useMemo(() => checkPrice(Number(quote), tr), [quote, tr]);
 
   const hotspots = useMemo(() => trips.filter((t) => t.status === "FLAGGED"), [trips]);
 
@@ -309,12 +328,12 @@ export default function Home() {
     try {
       const r = await fetch(`/api/pincode?pincode=${encodeURIComponent(pincode)}`);
       const d = await r.json();
-      logCall(`GET /api/pincode?pincode=${pincode}`, r.status, r.ok ? `${d.district}, ${d.state} · ${d.count} post offices` : d.error);
-      if (!r.ok || !d.ok) throw new Error(d.error || "Pincode check failed");
-      setPinInfo(`${d.district}, ${d.state} — ${d.count} post offices (e.g. ${d.postOffices.join(", ")})`);
-      setMsg({ kind: "ok", text: `Pincode verified live: ${d.district}, ${d.state}.` });
+      logCall(`GET /api/pincode?pincode=${pincode}`, r.status, r.ok ? `${d.district}, ${d.state} · ${tr("log.postOffices", { count: d.count })}` : d.error);
+      if (!r.ok || !d.ok) throw new Error(d.error || tr("error.pincode"));
+      setPinInfo(tr("book.pinInfo", { district: d.district, state: d.state, count: d.count, offices: d.postOffices.join(", ") }));
+      setMsg({ kind: "ok", text: tr("toast.pincodeOk", { district: d.district, state: d.state }) });
     } catch (e) {
-      setMsg({ kind: "err", text: e instanceof Error ? e.message : "Pincode API down. Retry — no fake validation." });
+      setMsg({ kind: "err", text: e instanceof Error ? e.message : tr("error.pincodeDown") });
     } finally {
       setBusy(false);
     }
@@ -325,13 +344,13 @@ export default function Home() {
     try {
       const r = await fetch(`/api/geocode?q=${encodeURIComponent(hhAddress)}`);
       const d = await r.json();
-      logCall(`GET /api/geocode?q=${encodeURIComponent(hhAddress).slice(0, 60)}`, r.status, r.ok ? `pickup ${d.results?.[0]?.lat?.toFixed(5)}, ${d.results?.[0]?.lon?.toFixed(5)}` : d.error);
-      if (!r.ok || !d.ok || !d.results?.length) throw new Error(d.error || "No geocode match. Try a fuller address.");
+      logCall(`GET /api/geocode?q=${encodeURIComponent(hhAddress).slice(0, 60)}`, r.status, r.ok ? tr("log.pickupCoords", { lat: d.results?.[0]?.lat?.toFixed(5), lon: d.results?.[0]?.lon?.toFixed(5) }) : d.error);
+      if (!r.ok || !d.ok || !d.results?.length) throw new Error(d.error || tr("error.geocodeNoMatch"));
       const w = d.results[0];
       setHhCoords({ lat: w.lat, lon: w.lon, displayName: w.displayName });
-      setMsg({ kind: "ok", text: `Pickup geocoded live (Nominatim): ${w.lat.toFixed(5)}, ${w.lon.toFixed(5)} — ${w.displayName}` });
+      setMsg({ kind: "ok", text: tr("toast.geocodePickup", { lat: w.lat.toFixed(5), lon: w.lon.toFixed(5), name: w.displayName }) });
     } catch (e) {
-      setMsg({ kind: "err", text: e instanceof Error ? e.message : "Nominatim down. Cannot book without real coords — retry." });
+      setMsg({ kind: "err", text: e instanceof Error ? e.message : tr("error.nominatim") });
     } finally {
       setBusy(false);
     }
@@ -339,20 +358,20 @@ export default function Home() {
 
   async function geocodeCustomPlant() {
     if (!customPlant.trim()) {
-      setMsg({ kind: "err", text: "Type a plant name or address first." });
+      setMsg({ kind: "err", text: tr("error.plantNameFirst") });
       return;
     }
     setBusy(true);
     try {
       const r = await fetch(`/api/geocode?q=${encodeURIComponent(customPlant)}`);
       const d = await r.json();
-      logCall(`GET /api/geocode?q=${encodeURIComponent(customPlant).slice(0, 60)}`, r.status, r.ok ? `plant ${d.results?.[0]?.lat?.toFixed(5)}, ${d.results?.[0]?.lon?.toFixed(5)}` : d.error);
-      if (!r.ok || !d.ok || !d.results?.length) throw new Error(d.error || "Plant geocode failed.");
+      logCall(`GET /api/geocode?q=${encodeURIComponent(customPlant).slice(0, 60)}`, r.status, r.ok ? tr("log.plantCoords", { lat: d.results?.[0]?.lat?.toFixed(5), lon: d.results?.[0]?.lon?.toFixed(5) }) : d.error);
+      if (!r.ok || !d.ok || !d.results?.length) throw new Error(d.error || tr("error.plantGeocode"));
       const w = d.results[0];
       setPlantCoords({ lat: w.lat, lon: w.lon, displayName: w.displayName });
-      setMsg({ kind: "ok", text: `Plant geocoded live: ${w.lat.toFixed(5)}, ${w.lon.toFixed(5)} — ${w.displayName}` });
+      setMsg({ kind: "ok", text: tr("toast.geocodePlant", { lat: w.lat.toFixed(5), lon: w.lon.toFixed(5), name: w.displayName }) });
     } catch (e) {
-      setMsg({ kind: "err", text: e instanceof Error ? e.message : "Nominatim down for plant. Retry." });
+      setMsg({ kind: "err", text: e instanceof Error ? e.message : tr("error.nominatimPlant") });
     } finally {
       setBusy(false);
     }
@@ -360,20 +379,20 @@ export default function Home() {
 
   async function book() {
     if (!hhCoords) {
-      setMsg({ kind: "err", text: "Geocode the pickup first. Real coordinates are required — no fake tanker locations." });
+      setMsg({ kind: "err", text: tr("error.geocodeFirst") });
       return;
     }
     const plant = plantMode === "osm" ? selectedPlant : null;
     const pLat = plantMode === "osm" ? plant?.lat : plantCoords?.lat;
     const pLon = plantMode === "osm" ? plant?.lon : plantCoords?.lon;
-    const pName = plantMode === "osm" ? (plant ? plantDisplayName(plant) : "") : customPlant.trim();
+    const pName = plantMode === "osm" ? (plant ? plantDisplayName(plant, tr) : "") : customPlant.trim();
     const pAddress = plantMode === "osm" ? (plant ? `${plant.operator || "OSM record"} · ${plant.id}` : "") : plantCoords?.displayName || "";
     if (!pName || pLat == null || pLon == null) {
-      setMsg({ kind: "err", text: "Choose a plant from the OSM register, or geocode a custom plant first." });
+      setMsg({ kind: "err", text: tr("error.choosePlant") });
       return;
     }
     if (!operator.trim() || !vehicle.trim()) {
-      setMsg({ kind: "err", text: "Operator name and vehicle number are required for the custody record." });
+      setMsg({ kind: "err", text: tr("error.operatorVehicle") });
       return;
     }
     setBusy(true);
@@ -397,18 +416,18 @@ export default function Home() {
         }),
       });
       const d = await r.json();
-      logCall("POST /api/trips", r.status, r.ok ? `${d.trip?.id} · OSRM ${d.trip?.distanceKm} km` : d.error);
-      if (!r.ok) throw new Error(d.error || "Booking failed");
+      logCall("POST /api/trips", r.status, r.ok ? `${d.trip?.id} · ${tr("log.osrmDistance", { km: d.trip?.distanceKm })}` : d.error);
+      if (!r.ok) throw new Error(d.error || tr("error.booking"));
       const trip = d.trip as Trip;
       setLastTrip(trip);
       setSelectedId(trip.id);
       setMsg({
         kind: "ok",
-        text: `${trip.id} booked. OSRM live: ${trip.distanceKm} km / ${trip.durationMin} min. Gate OTP ${trip.plantOtp} issued — the chain is open until the plant verifies it.`,
+        text: tr("toast.booked", { id: trip.id, km: trip.distanceKm ?? "—", min: trip.durationMin ?? "—", otp: trip.plantOtp }),
       });
       await refreshTrips();
     } catch (e) {
-      setMsg({ kind: "err", text: e instanceof Error ? e.message : "Booking failed." });
+      setMsg({ kind: "err", text: e instanceof Error ? e.message : tr("error.booking") });
     } finally {
       setBusy(false);
     }
@@ -424,14 +443,14 @@ export default function Home() {
       });
       const d = await r.json();
       logCall(`POST /api/trips/${trip.id}/status → ${to}`, r.status, r.ok ? `${trip.status} → ${to}` : d.error);
-      if (!r.ok) throw new Error(d.error || "Status update failed");
+      if (!r.ok) throw new Error(d.error || tr("error.statusUpdate"));
       setMsg({
         kind: "ok",
-        text: to === "FLAGGED" ? `${trip.id} flagged. The chain is broken and payment stays held.` : `${trip.id} → ${STATUS_LABEL[to] || to}.`,
+        text: to === "FLAGGED" ? tr("toast.flagged", { id: trip.id }) : tr("toast.statusAdvanced", { id: trip.id, status: tripStatusLabel(tr, to) }),
       });
       await refreshTrips();
     } catch (e) {
-      setMsg({ kind: "err", text: e instanceof Error ? e.message : "Update failed" });
+      setMsg({ kind: "err", text: e instanceof Error ? e.message : tr("error.update") });
     } finally {
       setBusy(false);
     }
@@ -447,12 +466,12 @@ export default function Home() {
         body: JSON.stringify({ otp: v.otp, receiptId: v.receiptId }),
       });
       const d = await r.json();
-      logCall(`POST /api/trips/${trip.id}/verify`, r.status, r.ok ? `OTP match · receipt ${v.receiptId}` : d.error);
-      if (!r.ok) throw new Error(d.error || "Verification failed");
-      setMsg({ kind: "ok", text: d.message });
+      logCall(`POST /api/trips/${trip.id}/verify`, r.status, r.ok ? tr("log.otpMatch", { receipt: v.receiptId }) : d.error);
+      if (!r.ok) throw new Error(d.error || tr("error.verification"));
+      setMsg({ kind: "ok", text: tr("toast.verified", { id: trip.id, plant: trip.plantName, receipt: v.receiptId }) });
       await refreshTrips();
     } catch (e) {
-      setMsg({ kind: "err", text: e instanceof Error ? e.message : "Verify failed" });
+      setMsg({ kind: "err", text: e instanceof Error ? e.message : tr("error.verify") });
     } finally {
       setBusy(false);
     }
@@ -460,7 +479,7 @@ export default function Home() {
 
   async function generateComplaint() {
     if (!complaintTripId) {
-      setMsg({ kind: "err", text: "Select a trip first." });
+      setMsg({ kind: "err", text: tr("toast.selectTripFirst") });
       return;
     }
     setComplaintBusy(true);
@@ -471,12 +490,12 @@ export default function Home() {
         body: JSON.stringify({ tripId: complaintTripId, area: complaintArea }),
       });
       const d = await r.json();
-      logCall("POST /api/complaint", r.status, r.ok ? `draft for ${complaintTripId}` : d.error);
-      if (!r.ok) throw new Error(d.error || "Complaint generation failed");
+      logCall("POST /api/complaint", r.status, r.ok ? tr("log.complaintDraft", { id: complaintTripId }) : d.error);
+      if (!r.ok) throw new Error(d.error || tr("error.complaint"));
       setComplaintText(d.text);
-      setMsg({ kind: "ok", text: "Complaint built from the trip record. Review the facts before sending." });
+      setMsg({ kind: "ok", text: tr("toast.complaintBuilt") });
     } catch (e) {
-      setMsg({ kind: "err", text: e instanceof Error ? e.message : "Complaint generation failed" });
+      setMsg({ kind: "err", text: e instanceof Error ? e.message : tr("error.complaint") });
     } finally {
       setComplaintBusy(false);
     }
@@ -500,12 +519,12 @@ export default function Home() {
         }),
       });
       const d = await r.json();
-      logCall("POST /api/ai (otp)", r.status, r.ok ? `source: ${d.source}` : d.error);
-      if (!r.ok) throw new Error(d.error || "AI failed");
+      logCall("POST /api/ai (otp)", r.status, r.ok ? tr("log.aiSource", { source: d.source }) : d.error);
+      if (!r.ok) throw new Error(d.error || tr("error.ai"));
       setAiText(d.text);
-      setAiSource(d.source + (d.llmError ? ` · LLM: ${d.llmError} → template fallback` : ""));
+      setAiSource(d.source + (d.llmError ? ` · ${tr("log.llmFallback", { error: d.llmError })}` : ""));
     } catch (e) {
-      setAiText(`AI endpoint error: ${e instanceof Error ? e.message : "unknown"}. The field flow does not depend on it.`);
+      setAiText(tr("error.aiEndpoint", { error: e instanceof Error ? e.message : "unknown" }));
       setAiSource("client-error");
     } finally {
       setAiBusy(false);
@@ -515,9 +534,9 @@ export default function Home() {
   async function copyText(text: string, label: string) {
     try {
       await navigator.clipboard.writeText(text);
-      setMsg({ kind: "ok", text: `${label} copied.` });
+      setMsg({ kind: "ok", text: tr("toast.copied", { label }) });
     } catch {
-      setMsg({ kind: "err", text: "Clipboard blocked by the browser. Select the text and copy manually." });
+      setMsg({ kind: "err", text: tr("toast.clipboardBlocked") });
     }
   }
 
@@ -557,11 +576,11 @@ export default function Home() {
     a.download = `safai-trace-trips-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    setMsg({ kind: "ok", text: `Exported ${trips.length} pilot rows as CSV. Pilot label is a column, not a footnote.` });
+    setMsg({ kind: "ok", text: tr("toast.csvExported", { count: trips.length }) });
   }
 
-  const chain = buildChain(selected);
-  const statusLabel = selected ? STATUS_LABEL[selected.status] || selected.status : "NO TRIP SELECTED";
+  const chain = buildChain(selected, tr);
+  const statusLabel = selected ? tripStatusLabel(tr, selected.status) : tr("status.none");
   const statusTone = selected ? (selected.status === "VERIFIED" ? "ok" : selected.status === "FLAGGED" ? "bad" : "open") : "idle";
   const mapTrip = selected
     ? {
@@ -583,8 +602,8 @@ export default function Home() {
   const onSelectPlant = useCallback((p: Plant) => {
     setPlantMode("osm");
     setPlantId(p.id);
-    setMsg({ kind: "info", text: `Plant selected from OSM: ${plantDisplayName(p)} (${p.lat.toFixed(5)}, ${p.lon.toFixed(5)}).` });
-  }, []);
+    setMsg({ kind: "info", text: tr("toast.plantSelected", { name: plantDisplayName(p, tr), lat: p.lat.toFixed(5), lon: p.lon.toFixed(5) }) });
+  }, [tr]);
 
   const apiEntries = health?.apis ? Object.entries(health.apis) : [];
 
@@ -596,15 +615,16 @@ export default function Home() {
           <ChainMark />
           <div>
             <h1>Safai Trace</h1>
-            <p>Faecal sludge chain of custody</p>
+            <p>{tr("mast.tagline")}</p>
           </div>
         </div>
         <div className="mast-meta">
-          <span className="pilot-tag">Pilot · Delhi</span>
+          <span className="pilot-tag">{tr("mast.pilotTag")}</span>
           <span className="mast-date">06 Nov 2026</span>
+          <LanguageSwitcher className="mast-lang" />
         </div>
-        <div className="api-lights" aria-label="Live API status">
-          {apiEntries.length === 0 && <span className="light checking"><i />checking APIs</span>}
+        <div className="api-lights" aria-label={tr("mast.apiStatus")}>
+          {apiEntries.length === 0 && <span className="light checking"><i />{tr("mast.checkingApis")}</span>}
           {apiEntries.map(([k, v]) => (
             <span key={k} className={`light ${v === "ok" ? "up" : "down"}`} title={v}>
               <i />
@@ -618,21 +638,21 @@ export default function Home() {
         </div>
       </header>
 
-      <section className={`chain-strip ${selected ? selected.status : "empty"}`} aria-label="Chain of custody">
+      <section className={`chain-strip ${selected ? selected.status : "empty"}`} aria-label={tr("chain.aria")}>
         <div className="chain-head">
           <div className="chain-id">
             {selected ? (
               <>
                 <span className="mono">{selected.id}</span>
-                {selected.pilot && <span className="pilot-tag">Pilot</span>}
+                {selected.pilot && <span className="pilot-tag">{tr("common.pilot")}</span>}
               </>
             ) : (
-              <span>No trip selected</span>
+              <span>{tr("chain.noTrip")}</span>
             )}
           </div>
           <div className={`chain-status ${statusTone}`}>{statusLabel}</div>
           <div className={`chain-pay ${selected?.paymentReleased ? "released" : selected?.status === "FLAGGED" ? "broken" : ""}`}>
-            {selected ? (selected.paymentReleased ? "Payment released" : "Payment held") : "—"}
+            {selected ? (selected.paymentReleased ? tr("chain.paymentReleased") : tr("chain.paymentHeld")) : "—"}
           </div>
         </div>
 
@@ -643,8 +663,8 @@ export default function Home() {
               <div className="chain-cell" key={s.key}>
                 <div className={`station ${st}`}>
                   <span className="station-num">0{i + 1}</span>
-                  <span className="station-name">{s.name}</span>
-                  <span className="station-note">{s.note}</span>
+                  <span className="station-name">{tr(s.nameKey)}</span>
+                  <span className="station-note">{tr(s.noteKey)}</span>
                 </div>
                 {i < STATIONS.length - 1 && (
                   <div className={`link ${chain.links[i]}`} aria-hidden="true">
@@ -662,17 +682,17 @@ export default function Home() {
       {msg && (
         <div className={`notice ${msg.kind}`} role="status">
           <span>{msg.text}</span>
-          <button type="button" onClick={() => setMsg(null)} aria-label="Dismiss message">×</button>
+          <button type="button" onClick={() => setMsg(null)} aria-label={tr("notice.dismiss")}>×</button>
         </div>
       )}
 
       <FloatingPayout trips={trips} />
 
       <main className="deck">
-        <aside className="queue" aria-label="Dispatch queue">
+        <aside className="queue" aria-label={tr("queue.aria")}>
           <div className="panel-title">
-            <h2>Dispatch queue</h2>
-            <span>{trips.length} trips</span>
+            <h2>{tr("queue.title")}</h2>
+            <span>{trips.length === 1 ? tr("queue.countOne", { count: trips.length }) : tr("queue.count", { count: trips.length })}</span>
           </div>
           <div className="queue-list">
             {trips.map((t) => (
@@ -686,52 +706,54 @@ export default function Home() {
                 <span className="queue-main">
                   <span className="queue-idline">
                     <span className="queue-id mono">{t.id}</span>
-                    {t.pilot && <span className="pilot-tag queue-pilot">Pilot</span>}
+                    {t.pilot && <span className="pilot-tag queue-pilot">{tr("common.pilot")}</span>}
                   </span>
                   <span className="queue-plant">{t.plantName}</span>
                 </span>
                 <span className="queue-side">
-                  <span className={`queue-status ${t.status}`}>{STATUS_LABEL[t.status] || t.status}</span>
-                  <span className="queue-km">{t.distanceKm != null ? `${t.distanceKm} km` : "no route"}</span>
+                  <span className={`queue-status ${t.status}`}>{tripStatusLabel(tr, t.status)}</span>
+                  <span className="queue-km">{t.distanceKm != null ? `${t.distanceKm} km` : tr("queue.noRoute")}</span>
                 </span>
               </button>
             ))}
-            {!trips.length && <p className="empty">No trips yet. Book one from the desk below.</p>}
+            {!trips.length && <p className="empty">{tr("queue.empty")}</p>}
           </div>
-          <p className="queue-note">Every row is pilot-collected. No row is a real municipal trip.</p>
+          <p className="queue-note">{tr("queue.note")}</p>
         </aside>
 
-        <section className="map-panel" aria-label="Plant map">
+        <section className="map-panel" aria-label={tr("map.aria")}>
           <div className="panel-bar">
             <div>
-              <span className="bar-title">Plant register</span>
+              <span className="bar-title">{tr("map.registerTitle")}</span>
               <span className="bar-meta">
-                {plantsLoading ? "loading…" : `${plants.length} OSM records · ${plantMeta?.namedCount ?? namedPlants.length} named`}
+                {plantsLoading
+                  ? tr("common.loading")
+                  : tr("map.registerMeta", { total: plants.length, named: plantMeta?.namedCount ?? namedPlants.length })}
               </span>
             </div>
             <div className="bar-actions">
-              {plantMeta?.fetchedAt && <span className="bar-stamp">snapshot {fmtDate(plantMeta.fetchedAt)}</span>}
+              {plantMeta?.fetchedAt && <span className="bar-stamp">{tr("map.snapshot", { date: fmtDate(plantMeta.fetchedAt) })}</span>}
               <button type="button" className="btn tiny ghost" onClick={() => loadPlants(true)} disabled={plantsRefreshing}>
-                {plantsRefreshing ? "Refreshing…" : "Refresh OSM"}
+                {plantsRefreshing ? tr("map.refreshing") : tr("map.refresh")}
               </button>
               <a className="bar-link" href={plantMeta?.osmUrl || "https://www.openstreetmap.org/#map=11/28.64/77.20"} target="_blank" rel="noreferrer">
-                Open OSM
+                {tr("common.openOsm")}
               </a>
             </div>
           </div>
 
           {plantMeta?.stale && (
             <div className="map-warning">
-              Overpass refresh failed. Showing the dated snapshot from {fmtDate(plantMeta.fetchedAt)}. {plantMeta.liveError}
+              {tr("map.stale", { date: fmtDate(plantMeta.fetchedAt), error: plantMeta.liveError || "" })}
             </div>
           )}
           {!plantsLoading && plants.length === 0 && (
             <div className="map-unavailable">
-              <strong>Plant map unavailable.</strong>
-              <p>{plantMeta?.error || "All Overpass mirrors failed."} No plant coordinates are invented.</p>
+              <strong>{tr("map.unavailableTitle")}</strong>
+              <p>{tr("map.unavailableBody", { error: plantMeta?.error || tr("map.allMirrorsFailed") })}</p>
               <div className="row">
-                <button type="button" className="btn" onClick={() => loadPlants(true)}>Retry Overpass</button>
-                <a className="bar-link" href="https://www.openstreetmap.org/#map=11/28.64/77.20" target="_blank" rel="noreferrer">Open OSM</a>
+                <button type="button" className="btn" onClick={() => loadPlants(true)}>{tr("map.retry")}</button>
+                <a className="bar-link" href="https://www.openstreetmap.org/#map=11/28.64/77.20" target="_blank" rel="noreferrer">{tr("common.openOsm")}</a>
               </div>
             </div>
           )}
@@ -739,118 +761,118 @@ export default function Home() {
           <PlantMap plants={plants} trip={mapTrip} selectedPlantId={plantMode === "osm" ? plantId : null} onSelectPlant={onSelectPlant} />
 
           <div className="map-key">
-            <span><i className="key-dot plant" /> OSM wastewater plant</span>
-            <span><i className="key-dot selected" /> selected disposal plant</span>
-            <span><i className="key-dot pickup" /> household pickup</span>
-            <span><i className="key-line route" /> OSRM road route</span>
-            <span className="key-note">{plantMeta?.license || "OpenStreetMap contributors, ODbL"}</span>
+            <span><i className="key-dot plant" /> {tr("map.key.plant")}</span>
+            <span><i className="key-dot selected" /> {tr("map.key.selected")}</span>
+            <span><i className="key-dot pickup" /> {tr("map.key.pickup")}</span>
+            <span><i className="key-line route" /> {tr("map.key.route")}</span>
+            <span className="key-note">{plantMeta?.license || tr("map.license")}</span>
           </div>
         </section>
 
-        <aside className="dossier" aria-label="Selected trip dossier">
+        <aside className="dossier" aria-label={tr("dossier.aria")}>
           <div className="panel-title">
-            <h2>Trip dossier</h2>
-            {selected?.pilot && <span className="pilot-tag">Pilot</span>}
+            <h2>{tr("dossier.title")}</h2>
+            {selected?.pilot && <span className="pilot-tag">{tr("common.pilot")}</span>}
           </div>
-          {!selected && <p className="empty">Select a trip from the queue. The chain stays open until a plant receipt is recorded.</p>}
+          {!selected && <p className="empty">{tr("dossier.empty")}</p>}
           {selected && (
             <>
               <div className={`dossier-status ${statusTone}`}>
                 <span>{statusLabel}</span>
-                <small>{selected.paymentReleased ? "payment released" : "payment held"}</small>
+                <small>{selected.paymentReleased ? tr("dossier.paymentReleasedLower") : tr("dossier.paymentHeldLower")}</small>
               </div>
 
               <dl className="facts">
-                <div><dt>Pickup</dt><dd>{selected.householdAddress}</dd></div>
-                <div><dt>Plant</dt><dd>{selected.plantName}<br /><span className="dim">{selected.plantAddress}</span></dd></div>
-                <div><dt>Distance</dt><dd>{selected.distanceKm != null ? `${selected.distanceKm} km · ${selected.durationMin} min` : "not recorded"} <span className="dim">OSRM live</span></dd></div>
-                <div><dt>Operator</dt><dd>{selected.operatorName}<br /><span className="dim">{selected.vehicleNo}</span></dd></div>
-                <div><dt>Quoted</dt><dd>{selected.quotedPrice != null ? `₹${selected.quotedPrice.toLocaleString("en-IN")}` : "not recorded"}</dd></div>
-                <div><dt>Booked</dt><dd>{fmtDateTime(selected.createdAt)}</dd></div>
+                <div><dt>{tr("dossier.pickup")}</dt><dd>{selected.householdAddress}</dd></div>
+                <div><dt>{tr("dossier.plant")}</dt><dd>{selected.plantName}<br /><span className="dim">{selected.plantAddress}</span></dd></div>
+                <div><dt>{tr("dossier.distance")}</dt><dd>{selected.distanceKm != null ? `${selected.distanceKm} km · ${selected.durationMin} min` : tr("common.notRecorded")} <span className="dim">{tr("dossier.osrmLive")}</span></dd></div>
+                <div><dt>{tr("dossier.operator")}</dt><dd>{selected.operatorName}<br /><span className="dim">{selected.vehicleNo}</span></dd></div>
+                <div><dt>{tr("dossier.quoted")}</dt><dd>{selected.quotedPrice != null ? `₹${selected.quotedPrice.toLocaleString("en-IN")}` : tr("common.notRecorded")}</dd></div>
+                <div><dt>{tr("dossier.booked")}</dt><dd>{fmtDateTime(selected.createdAt)}</dd></div>
               </dl>
 
               <div className="gate-code">
-                <span className="gate-label">Plant board OTP</span>
-                <div className="otp-digits" aria-label={`OTP ${selected.plantOtp}`}>
+                <span className="gate-label">{tr("dossier.gateLabel")}</span>
+                <div className="otp-digits" aria-label={tr("dossier.otpAria", { otp: selected.plantOtp })}>
                   {selected.plantOtp.split("").map((d, i) => <span key={i}>{d}</span>)}
                 </div>
-                <span className="gate-hint">Driver must match this at the weighbridge. It is not proof until a receipt is entered.</span>
+                <span className="gate-hint">{tr("dossier.gateHint")}</span>
               </div>
 
               <div className="dossier-actions">
                 {selected.status === "BOOKED" && (
-                  <button type="button" className="btn wide" disabled={busy} onClick={() => advance(selected, "EN_ROUTE")}>Start trip · en route</button>
+                  <button type="button" className="btn wide" disabled={busy} onClick={() => advance(selected, "EN_ROUTE")}>{tr("dossier.startTrip")}</button>
                 )}
                 {selected.status === "EN_ROUTE" && (
-                  <button type="button" className="btn wide" disabled={busy} onClick={() => advance(selected, "AT_PLANT")}>Mark arrival at plant</button>
+                  <button type="button" className="btn wide" disabled={busy} onClick={() => advance(selected, "AT_PLANT")}>{tr("dossier.markArrival")}</button>
                 )}
                 {selected.status === "AT_PLANT" && (
                   <div className="verify-block">
-                    <label htmlFor={`otp-${selected.id}`}>OTP from plant board</label>
+                    <label htmlFor={`otp-${selected.id}`}>{tr("dossier.otpField")}</label>
                     <input
                       id={`otp-${selected.id}`}
                       inputMode="numeric"
                       maxLength={4}
-                      placeholder="4 digits"
+                      placeholder={tr("dossier.otpPlaceholder")}
                       value={verifyMap[selected.id]?.otp || ""}
                       onChange={(e) => setVerifyMap({ ...verifyMap, [selected.id]: { ...(verifyMap[selected.id] || { receiptId: "" }), otp: e.target.value } })}
                     />
-                    <label htmlFor={`rcpt-${selected.id}`}>Weighbridge receipt ID</label>
+                    <label htmlFor={`rcpt-${selected.id}`}>{tr("dossier.receiptField")}</label>
                     <input
                       id={`rcpt-${selected.id}`}
                       placeholder="WBR-OKH-20261106-002"
                       value={verifyMap[selected.id]?.receiptId || ""}
                       onChange={(e) => setVerifyMap({ ...verifyMap, [selected.id]: { ...(verifyMap[selected.id] || { otp: "" }), receiptId: e.target.value } })}
                     />
-                    <button type="button" className="btn wide" disabled={busy} onClick={() => verify(selected)}>Verify disposal · release payment</button>
+                    <button type="button" className="btn wide" disabled={busy} onClick={() => verify(selected)}>{tr("dossier.verify")}</button>
                   </div>
                 )}
                 {selected.status === "FLAGGED" && (
                   <>
-                    <div className="broken-note">No plant receipt. The chain is broken; payment stays held.</div>
-                    <button type="button" className="btn wide ghost" disabled={busy} onClick={() => advance(selected, "AT_PLANT")}>Revisit plant · reopen chain</button>
-                    <button type="button" className="btn wide ghost" onClick={() => { setTab("act"); setComplaintTripId(selected.id); }}>Build a dumping complaint</button>
+                    <div className="broken-note">{tr("dossier.brokenNote")}</div>
+                    <button type="button" className="btn wide ghost" disabled={busy} onClick={() => advance(selected, "AT_PLANT")}>{tr("dossier.revisit")}</button>
+                    <button type="button" className="btn wide ghost" onClick={() => { setTab("act"); setComplaintTripId(selected.id); }}>{tr("dossier.buildComplaint")}</button>
                   </>
                 )}
                 {selected.status === "VERIFIED" && (
                   <>
-                    <div className="verified-note">Receipt {selected.receiptId} sealed {fmtDateTime(selected.verifiedAt)}. Payment released.</div>
-                    <Link className="btn wide" href={`/certificate/${selected.id}`}>Open disposal certificate</Link>
+                    <div className="verified-note">{tr("chain.caption.verified", { receipt: selected.receiptId ?? "—", at: fmtDateTime(selected.verifiedAt) })}</div>
+                    <Link className="btn wide" href={`/certificate/${selected.id}`}>{tr("dossier.openCertificate")}</Link>
                   </>
                 )}
                 {(selected.status === "EN_ROUTE" || selected.status === "AT_PLANT") && (
                   <div className="flag-block">
-                    <label htmlFor={`flag-${selected.id}`}>Flag this trip (reason required)</label>
+                    <label htmlFor={`flag-${selected.id}`}>{tr("dossier.flagLabel")}</label>
                     <input
                       id={`flag-${selected.id}`}
-                      placeholder="e.g. receipt missing after 24h"
+                      placeholder={tr("dossier.flagPlaceholder")}
                       value={flagReason[selected.id] || ""}
                       onChange={(e) => setFlagReason({ ...flagReason, [selected.id]: e.target.value })}
                     />
-                    <button type="button" className="btn wide danger" disabled={busy} onClick={() => advance(selected, "FLAGGED")}>Flag · break the chain</button>
+                    <button type="button" className="btn wide danger" disabled={busy} onClick={() => advance(selected, "FLAGGED")}>{tr("dossier.flagAction")}</button>
                   </div>
                 )}
               </div>
 
               <div className="gate-token">
-                <span>Gate token</span>
+                <span>{tr("dossier.gateToken")}</span>
                 <code>SAFAI-TRACE:{selected.id}:OTP-{selected.plantOtp}</code>
-                <button type="button" className="link-btn" onClick={() => copyText(`SAFAI-TRACE:${selected.id}:OTP-${selected.plantOtp}`, "Gate token")}>Copy</button>
+                <button type="button" className="link-btn" onClick={() => copyText(`SAFAI-TRACE:${selected.id}:OTP-${selected.plantOtp}`, tr("dossier.gateToken"))}>{tr("common.copy")}</button>
               </div>
 
               <div className="osm-links">
-                <a href={`https://www.openstreetmap.org/?mlat=${selected.householdLat}&mlon=${selected.householdLon}#map=15/${selected.householdLat}/${selected.householdLon}`} target="_blank" rel="noreferrer">Pickup on OSM</a>
-                <a href={`https://www.openstreetmap.org/?mlat=${selected.plantLat}&mlon=${selected.plantLon}#map=15/${selected.plantLat}/${selected.plantLon}`} target="_blank" rel="noreferrer">Plant on OSM</a>
+                <a href={`https://www.openstreetmap.org/?mlat=${selected.householdLat}&mlon=${selected.householdLon}#map=15/${selected.householdLat}/${selected.householdLon}`} target="_blank" rel="noreferrer">{tr("dossier.pickupOsm")}</a>
+                <a href={`https://www.openstreetmap.org/?mlat=${selected.plantLat}&mlon=${selected.plantLon}#map=15/${selected.plantLat}/${selected.plantLon}`} target="_blank" rel="noreferrer">{tr("dossier.plantOsm")}</a>
               </div>
             </>
           )}
         </aside>
       </main>
 
-      <nav className="desk-tabs" aria-label="Control desk">
-        {TABS.map((t) => (
-          <button type="button" key={t.id} className={tab === t.id ? "active" : ""} onClick={() => setTab(t.id)}>
-            {t.label}
+      <nav className="desk-tabs" aria-label={tr("tabs.aria")}>
+        {TABS.map((tabItem) => (
+          <button type="button" key={tabItem.id} className={tab === tabItem.id ? "active" : ""} onClick={() => setTab(tabItem.id)}>
+            {tr(tabItem.labelKey)}
           </button>
         ))}
       </nav>
@@ -860,57 +882,57 @@ export default function Home() {
           <div className="book-grid">
             <div className="field-col">
               <div className="section-head">
-                <h2>Book a desludging</h2>
-                <p>The trip is not a trip until OSRM returns a road distance. The chain opens at BOOKED.</p>
+                <h2>{tr("book.title")}</h2>
+                <p>{tr("book.lead")}</p>
               </div>
 
-              <label htmlFor="hh-label">Household label <span className="opt">optional</span></label>
-              <input id="hh-label" value={hhLabel} onChange={(e) => setHhLabel(e.target.value)} placeholder="House 12, Janpath" />
+              <label htmlFor="hh-label">{tr("book.householdLabel")} <span className="opt">{tr("common.optional")}</span></label>
+              <input id="hh-label" value={hhLabel} onChange={(e) => setHhLabel(e.target.value)} placeholder={tr("book.householdPlaceholder")} />
 
-              <label htmlFor="hh-address">Pickup address <span className="req">geocoded live</span></label>
+              <label htmlFor="hh-address">{tr("book.pickupAddress")} <span className="req">{tr("book.geocodedLive")}</span></label>
               <div className="input-row">
-                <input id="hh-address" value={hhAddress} onChange={(e) => setHhAddress(e.target.value)} placeholder="Connaught Place, New Delhi" />
-                <button type="button" className="btn ghost" disabled={busy} onClick={geocodeHousehold}>Find pickup</button>
+                <input id="hh-address" value={hhAddress} onChange={(e) => setHhAddress(e.target.value)} placeholder={tr("book.pickupPlaceholder")} />
+                <button type="button" className="btn ghost" disabled={busy} onClick={geocodeHousehold}>{tr("book.findPickup")}</button>
               </div>
               {hhCoords ? (
-                <p className="readout ok">Nominatim · {hhCoords.lat.toFixed(5)}, {hhCoords.lon.toFixed(5)}<br /><span>{hhCoords.displayName}</span></p>
+                <p className="readout ok">{tr("book.nominatimReadout", { lat: hhCoords.lat.toFixed(5), lon: hhCoords.lon.toFixed(5) })}<br /><span>{hhCoords.displayName}</span></p>
               ) : (
-                <p className="readout">No coordinates yet. Booking stays disabled — never fake a pickup point.</p>
+                <p className="readout">{tr("book.noCoords")}</p>
               )}
 
-              <label htmlFor="pincode">Pincode <span className="req">India Post</span></label>
+              <label htmlFor="pincode">{tr("book.pincode")} <span className="req">India Post</span></label>
               <div className="input-row">
                 <input id="pincode" value={pincode} onChange={(e) => setPincode(e.target.value)} placeholder="110001" inputMode="numeric" maxLength={6} />
-                <button type="button" className="btn ghost" disabled={busy} onClick={checkPincode}>Validate</button>
+                <button type="button" className="btn ghost" disabled={busy} onClick={checkPincode}>{tr("book.validate")}</button>
               </div>
               {pinInfo && <p className="readout ok">{pinInfo}</p>}
 
               <div className="section-head sub">
-                <h3>Tank + household</h3>
-                <p>Used for the CPHEEO advice and the quoted-price check. It does not change the route.</p>
+                <h3>{tr("book.tankTitle")}</h3>
+                <p>{tr("book.tankLead")}</p>
               </div>
               <div className="two-up">
                 <div>
-                  <label htmlFor="persons">People using the tank</label>
+                  <label htmlFor="persons">{tr("book.people")}</label>
                   <input id="persons" type="number" min={1} max={50} value={persons} onChange={(e) => setPersons(Number(e.target.value))} />
                 </div>
                 <div>
-                  <label htmlFor="tank">Tank capacity (litres)</label>
+                  <label htmlFor="tank">{tr("book.tankCapacity")}</label>
                   <input id="tank" type="number" min={100} step={100} value={tankLitres} onChange={(e) => setTankLitres(Number(e.target.value))} />
                 </div>
               </div>
               <p className="readout">
-                CPHEEO planning: <strong>{norm.headline.toLowerCase()}</strong> — {norm.annualSludgeL} L of sludge a year. <button type="button" className="link-btn" onClick={() => setTab("norms")}>See the formula</button>
+                {tr("book.cpheeo", { headline: norm.headline, litres: norm.annualSludgeL.toLocaleString("en-IN") })} <button type="button" className="link-btn" onClick={() => setTab("norms")}>{tr("book.seeFormula")}</button>
               </p>
             </div>
 
             <div className="field-col">
               <div className="section-head">
-                <h2>Disposal plant</h2>
-                <p>Pick a real OSM wastewater-plant record, or geocode a site that is not in OSM.</p>
+                <h2>{tr("book.plantTitle")}</h2>
+                <p>{tr("book.plantLead")}</p>
               </div>
 
-              <label htmlFor="plant">Plant record</label>
+              <label htmlFor="plant">{tr("book.plantRecord")}</label>
               <select
                 id="plant"
                 value={plantMode === "custom" ? "__custom__" : plantId}
@@ -923,43 +945,43 @@ export default function Home() {
                 }}
               >
                 {namedPlants.map((p) => (
-                  <option key={p.id} value={p.id}>{plantDisplayName(p)} · {p.lat.toFixed(4)}, {p.lon.toFixed(4)}</option>
+                  <option key={p.id} value={p.id}>{tr("plant.option", { name: plantDisplayName(p, tr), lat: p.lat.toFixed(4), lon: p.lon.toFixed(4) })}</option>
                 ))}
-                <option value="__custom__">Other — geocode an address</option>
+                <option value="__custom__">{tr("book.otherPlant")}</option>
               </select>
               {plantMode === "osm" && selectedPlant && (
                 <p className="readout ok">
-                  {selectedPlant.operator || "OSM record"} · {selectedPlant.id}<br />
-                  <a href={selectedPlant.osmUrl} target="_blank" rel="noreferrer">Open this record on OSM</a>
+                  {selectedPlant.operator || tr("book.osmRecord")} · {selectedPlant.id}<br />
+                  <a href={selectedPlant.osmUrl} target="_blank" rel="noreferrer">{tr("book.openRecord")}</a>
                 </p>
               )}
               {plantMode === "custom" && (
                 <>
-                  <label htmlFor="custom-plant">Plant name / address</label>
+                  <label htmlFor="custom-plant">{tr("book.customPlant")}</label>
                   <div className="input-row">
-                    <input id="custom-plant" value={customPlant} onChange={(e) => setCustomPlant(e.target.value)} placeholder="FSTP Najafgarh Delhi" />
-                    <button type="button" className="btn ghost" disabled={busy} onClick={geocodeCustomPlant}>Geocode</button>
+                    <input id="custom-plant" value={customPlant} onChange={(e) => setCustomPlant(e.target.value)} placeholder={tr("book.customPlantPlaceholder")} />
+                    <button type="button" className="btn ghost" disabled={busy} onClick={geocodeCustomPlant}>{tr("book.geocode")}</button>
                   </div>
                   {plantCoords ? (
-                    <p className="readout ok">Nominatim · {plantCoords.lat.toFixed(5)}, {plantCoords.lon.toFixed(5)}<br /><span>{plantCoords.displayName}</span></p>
+                    <p className="readout ok">{tr("book.nominatimReadout", { lat: plantCoords.lat.toFixed(5), lon: plantCoords.lon.toFixed(5) })}<br /><span>{plantCoords.displayName}</span></p>
                   ) : (
-                    <p className="readout">Not geocoded yet. The book button stays disabled.</p>
+                    <p className="readout">{tr("book.notGeocoded")}</p>
                   )}
                 </>
               )}
 
               <div className="two-up">
                 <div>
-                  <label htmlFor="operator">Operator</label>
+                  <label htmlFor="operator">{tr("book.operator")}</label>
                   <input id="operator" value={operator} onChange={(e) => setOperator(e.target.value)} />
                 </div>
                 <div>
-                  <label htmlFor="vehicle">Vehicle no.</label>
+                  <label htmlFor="vehicle">{tr("book.vehicle")}</label>
                   <input id="vehicle" value={vehicle} onChange={(e) => setVehicle(e.target.value)} />
                 </div>
               </div>
 
-              <label htmlFor="quote">Quoted price (₹ per trip) <span className="req">sanity check</span></label>
+              <label htmlFor="quote">{tr("book.quote")} <span className="req">{tr("book.sanityCheck")}</span></label>
               <input id="quote" type="number" min={0} step={100} value={quote} onChange={(e) => setQuote(e.target.value)} />
               {price && (
                 <p className={`readout price-${price.status}`}>
@@ -968,20 +990,20 @@ export default function Home() {
               )}
 
               <button type="button" className="btn wide book-btn" disabled={busy || !hhCoords || (plantMode === "osm" ? !selectedPlant : !plantCoords)} onClick={book}>
-                {busy ? "Working…" : "Book trip + compute OSRM route"}
+                {busy ? tr("common.working") : tr("book.bookButton")}
               </button>
-              <p className="fine">No fake coordinates. If Nominatim or OSRM is down you get an error and a retry, never an invented distance.</p>
+              <p className="fine">{tr("book.noFake")}</p>
 
               {lastTrip && (
                 <div className="proof-box">
                   <div className="proof-head">
-                    <strong>{lastTrip.id} · gate proof</strong>
-                    <span className="pilot-tag">Pilot</span>
+                    <strong>{tr("book.gateProof", { id: lastTrip.id })}</strong>
+                    <span className="pilot-tag">{tr("common.pilot")}</span>
                   </div>
-                  <p>OTP <strong className="mono">{lastTrip.plantOtp}</strong> · {lastTrip.distanceKm} km / {lastTrip.durationMin} min (OSRM)</p>
+                  <p>{tr("book.otpLine", { otp: lastTrip.plantOtp, km: lastTrip.distanceKm ?? "—", min: lastTrip.durationMin ?? "—" })}</p>
                   <code>SAFAI-TRACE:{lastTrip.id}:OTP-{lastTrip.plantOtp}</code>
-                  <button type="button" className="link-btn" onClick={() => copyText(`SAFAI-TRACE:${lastTrip.id}:OTP-${lastTrip.plantOtp}`, "Gate token")}>Copy token</button>
-                  <p className="fine">Print or scan this at the plant gate. Verification needs the OTP and a weighbridge receipt.</p>
+                  <button type="button" className="link-btn" onClick={() => copyText(`SAFAI-TRACE:${lastTrip.id}:OTP-${lastTrip.plantOtp}`, tr("dossier.gateToken"))}>{tr("book.copyToken")}</button>
+                  <p className="fine">{tr("book.proofFine")}</p>
                 </div>
               )}
             </div>
@@ -992,16 +1014,16 @@ export default function Home() {
           <div className="norms-grid">
             <div className="field-col">
               <div className="section-head">
-                <h2>When should this tank be emptied?</h2>
-                <p>CPHEEO plans on 0.067 m³ of sludge per person per year. Enter the household and the tank you actually have.</p>
+                <h2>{tr("norms.title")}</h2>
+                <p>{tr("norms.lead")}</p>
               </div>
               <div className="two-up">
                 <div>
-                  <label htmlFor="n-persons">People using the tank</label>
+                  <label htmlFor="n-persons">{tr("book.people")}</label>
                   <input id="n-persons" type="number" min={1} max={50} value={persons} onChange={(e) => setPersons(Number(e.target.value))} />
                 </div>
                 <div>
-                  <label htmlFor="n-tank">Tank capacity (litres)</label>
+                  <label htmlFor="n-tank">{tr("book.tankCapacity")}</label>
                   <input id="n-tank" type="number" min={100} step={100} value={tankLitres} onChange={(e) => setTankLitres(Number(e.target.value))} />
                 </div>
               </div>
@@ -1011,28 +1033,33 @@ export default function Home() {
                 ))}
               </div>
               <div className={`norm-result ${norm.status}`}>
-                <span className="norm-big">{norm.recommendedYears}<small>{norm.recommendedYears === 1 ? "year" : "years"}</small></span>
+                <span className="norm-big">{norm.recommendedYears}<small>{norm.recommendedYears === 1 ? tr("norms.unit.year") : tr("norms.unit.years")}</small></span>
                 <div>
                   <strong>{norm.headline}</strong>
                   <p>{norm.detail}</p>
                 </div>
               </div>
               <div className="formula">
-                <span>Formula</span>
+                <span>{tr("norms.formulaLabel")}</span>
                 <code>V = N × 0.067 m³/person/yr × T</code>
-                <p>N = {norm.persons} people · annual sludge = {norm.annualSludgeL.toLocaleString("en-IN")} L · 3-year sludge volume = {norm.required3yL.toLocaleString("en-IN")} L · theoretical fill time = {norm.yearsToFill} years.</p>
+                <p>{tr("norms.formulaDetail", {
+                  persons: norm.persons,
+                  annual: norm.annualSludgeL.toLocaleString("en-IN"),
+                  required: norm.required3yL.toLocaleString("en-IN"),
+                  years: norm.yearsToFill,
+                })}</p>
               </div>
             </div>
 
             <div className="field-col">
               <div className="section-head">
-                <h2>Quick reference</h2>
-                <p>Computed from the same formula. Years are the recommended interval, capped at the CPHEEO 3-year band.</p>
+                <h2>{tr("norms.quickTitle")}</h2>
+                <p>{tr("norms.quickLead")}</p>
               </div>
               <table className="matrix">
                 <thead>
                   <tr>
-                    <th>People</th>
+                    <th>{tr("norms.peopleCol")}</th>
                     {[1000, 1500, 2000, 3000].map((v) => <th key={v}>{v.toLocaleString("en-IN")} L</th>)}
                   </tr>
                 </thead>
@@ -1041,8 +1068,8 @@ export default function Home() {
                     <tr key={p}>
                       <th>{p}</th>
                       {[1000, 1500, 2000, 3000].map((v) => {
-                        const r = calculateDesludging(p, v);
-                        return <td key={v} className={r.status}>{r.recommendedYears} yr</td>;
+                        const r = calculateDesludging(p, v, tr);
+                        return <td key={v} className={r.status}>{tr("norms.yearsValue", { years: r.recommendedYears })}</td>;
                       })}
                     </tr>
                   ))}
@@ -1050,14 +1077,10 @@ export default function Home() {
               </table>
 
               <div className="section-head" style={{ marginTop: 22 }}>
-                <h2>Sanctioned septage projects in your State</h2>
-                <p>
-                  Queried live from data.gov.in (Ministry of Housing &amp; Urban Affairs), not copied
-                  from a report. Choose a State to see how many sewerage and septage projects AMRUT has
-                  sanctioned there — the public footprint a trip like this has to reach.
-                </p>
+                <h2>{tr("norms.septageTitle")}</h2>
+                <p>{tr("norms.septageLead")}</p>
               </div>
-              <label htmlFor="septage-state" className="sr-only">State for the AMRUT project count</label>
+              <label htmlFor="septage-state" className="sr-only">{tr("norms.septageStateLabel")}</label>
               <select
                 id="septage-state"
                 value={septageState}
@@ -1069,23 +1092,33 @@ export default function Home() {
                 ))}
               </select>
               <div className="septage-live" aria-live="polite">
-                {septageLoading && <p>Querying data.gov.in…</p>}
+                {septageLoading && <p>{tr("norms.querying")}</p>}
                 {!septageLoading && septage?.ok && (
                   <>
                     <p className="septage-total">
-                      <strong>{septage.total}</strong> {septage.total === 1 ? "project" : "projects"} sanctioned in {septage.state}
+                      <strong>{septage.total}</strong> {septage.total === 1 ? tr("norms.septageTotalOne", { count: septage.total, state: septage.state }) : tr("norms.septageTotal", { count: septage.total, state: septage.state })}
                     </p>
                     <p className="fine">
-                      AMRUT 1.0: {septage.phases.saap1 ?? "—"} · AMRUT 2.0: {septage.phases.saap2 ?? "—"} ·
-                      state share: {septage.phases.saap3 ?? "—"}. Fetched {new Date(septage.fetchedAt).toLocaleString("en-IN")}.
+                      {tr("norms.septagePhases", {
+                        saap1: septage.phases.saap1 ?? "—",
+                        saap2: septage.phases.saap2 ?? "—",
+                        saap3: septage.phases.saap3 ?? "—",
+                        date: new Date(septage.fetchedAt).toLocaleString("en-IN"),
+                      })}
                     </p>
                   </>
                 )}
                 {!septageLoading && septage && !septage.ok && (
-                  <p className="fine">{septage.message}</p>
+                  <p className="fine">
+                    {septage.reason === "unconfigured"
+                      ? tr("septage.unconfigured")
+                      : septage.reason === "no-row"
+                        ? tr("septage.noRow", { state: septageState })
+                        : tr("septage.error")}
+                  </p>
                 )}
                 <p className="fine">
-                  Source:{" "}
+                  {tr("common.source")}{" "}
                   <a href={AMRUT_RESOURCE_URL} target="_blank" rel="noreferrer">
                     {AMRUT_DATASET_TITLE}
                   </a>
@@ -1094,13 +1127,13 @@ export default function Home() {
               </div>
 
               <div className="source-block">
-                <p><strong>Norm.</strong> {CPHEEO.intervalSource}</p>
-                <p><strong>Accumulation.</strong> {CPHEEO.accumulationSource}</p>
-                <p><strong>Tank size.</strong> {CPHEEO.is2470Source}</p>
-                <p className="fine">{CPHEEO.caveat}</p>
+                <p><strong>{tr("norms.normLabel")}</strong> {tr("norms.source.interval")}</p>
+                <p><strong>{tr("norms.accumulationLabel")}</strong> {tr("norms.source.accumulation")}</p>
+                <p><strong>{tr("norms.tankSizeLabel")}</strong> {tr("norms.source.tank")}</p>
+                <p className="fine">{tr("norms.source.caveat")}</p>
                 <div className="source-links">
-                  <a href={CPHEEO.intervalUrl} target="_blank" rel="noreferrer">SBM-U advisory (Nov 2024)</a>
-                  <a href={CPHEEO.accumulationUrl} target="_blank" rel="noreferrer">CPHEEO manual (2012)</a>
+                  <a href={CPHEEO.intervalUrl} target="_blank" rel="noreferrer">{tr("norms.link.advisory")}</a>
+                  <a href={CPHEEO.accumulationUrl} target="_blank" rel="noreferrer">{tr("norms.link.manual")}</a>
                 </div>
               </div>
             </div>
@@ -1111,16 +1144,16 @@ export default function Home() {
           <div className="price-grid">
             <div className="field-col">
               <div className="section-head">
-                <h2>Is the quote in range?</h2>
-                <p>Enter what the operator quoted. The benchmark is a notified ULB rate card, not a number we made up.</p>
+                <h2>{tr("price.title")}</h2>
+                <p>{tr("price.lead")}</p>
               </div>
-              <label htmlFor="p-quote">Quoted price (₹ per trip)</label>
+              <label htmlFor="p-quote">{tr("book.quote")}</label>
               <input id="p-quote" type="number" min={0} step={100} value={quote} onChange={(e) => setQuote(e.target.value)} />
               <div className={`price-verdict ${price?.status || "empty"}`}>
                 <span className="price-big">{price ? `₹${price.quote.toLocaleString("en-IN")}` : "—"}</span>
                 <div>
-                  <strong>{price?.headline || "Enter a quote"}</strong>
-                  <p>{price?.detail || `The cited benchmark is ₹${PRICE_BENCHMARK.min.toLocaleString("en-IN")}–₹${PRICE_BENCHMARK.max.toLocaleString("en-IN")} per trip.`}</p>
+                  <strong>{price?.headline || tr("price.enterQuote")}</strong>
+                  <p>{price?.detail || tr("price.benchmarkFallback", { min: PRICE_BENCHMARK.min.toLocaleString("en-IN"), max: PRICE_BENCHMARK.max.toLocaleString("en-IN") })}</p>
                 </div>
               </div>
               <div className="price-track" aria-hidden="true">
@@ -1129,28 +1162,28 @@ export default function Home() {
                 <span className="price-tick" style={{ left: "37.5%" }}>₹1,500</span>
                 <span className="price-tick" style={{ left: "62.5%" }}>₹2,500</span>
               </div>
-              <p className="fine">Scale: ₹0–₹4,000. The yellow band is the cited range. A price inside the band still does not prove safe disposal.</p>
+              <p className="fine">{tr("price.scaleNote")}</p>
             </div>
             <div className="field-col">
               <div className="section-head">
-                <h2>What the benchmark covers</h2>
-                <p>{PRICE_BENCHMARK.label}. Per trip, not per litre.</p>
+                <h2>{tr("price.coversTitle")}</h2>
+                <p>{tr("price.coversLead")}</p>
               </div>
               <div className="source-block">
-                <p><strong>Primary.</strong> {PRICE_BENCHMARK.primarySource}</p>
-                <p><strong>Cross-check.</strong> {PRICE_BENCHMARK.secondarySource}</p>
-                <p className="fine">{PRICE_BENCHMARK.caveat}</p>
+                <p><strong>{tr("price.primaryLabel")}</strong> {tr("price.primarySource")}</p>
+                <p><strong>{tr("price.crossCheckLabel")}</strong> {tr("price.secondarySource")}</p>
+                <p className="fine">{tr("price.caveat")}</p>
                 <div className="source-links">
-                  <a href={PRICE_BENCHMARK.primaryUrl} target="_blank" rel="noreferrer">Jharkhand LWM rules 2025</a>
-                  <a href={PRICE_BENCHMARK.secondaryUrl} target="_blank" rel="noreferrer">NMCG septage guide</a>
+                  <a href={PRICE_BENCHMARK.primaryUrl} target="_blank" rel="noreferrer">{tr("price.linkPrimary")}</a>
+                  <a href={PRICE_BENCHMARK.secondaryUrl} target="_blank" rel="noreferrer">{tr("price.linkSecondary")}</a>
                 </div>
               </div>
               <div className="advice">
-                <h3>Three questions before you pay</h3>
+                <h3>{tr("price.adviceTitle")}</h3>
                 <ol>
-                  <li>Which FSTP/STP will take this load, and what is its gate OTP?</li>
-                  <li>Will I get the weighbridge slip with the trip ID on it?</li>
-                  <li>Is the quoted price for the trip or for a fixed number of litres?</li>
+                  <li>{tr("price.advice1")}</li>
+                  <li>{tr("price.advice2")}</li>
+                  <li>{tr("price.advice3")}</li>
                 </ol>
               </div>
             </div>
@@ -1161,55 +1194,56 @@ export default function Home() {
           <div className="act-grid">
             <div className="field-col">
               <div className="section-head">
-                <h2>Build a complaint</h2>
-                <p>Generates a formal complaint from the trip record. It adds no facts. Review it, then send it through a real channel.</p>
+                <h2>{tr("act.title")}</h2>
+                <p>{tr("act.lead")}</p>
               </div>
-              <label htmlFor="c-trip">Trip</label>
+              <label htmlFor="c-trip">{tr("common.trip")}</label>
               <select id="c-trip" value={complaintTripId} onChange={(e) => setComplaintTripId(e.target.value)}>
                 {trips.map((t) => (
-                  <option key={t.id} value={t.id}>{t.id} · {STATUS_LABEL[t.status] || t.status} · {t.vehicleNo}</option>
+                  <option key={t.id} value={t.id}>{t.id} · {tripStatusLabel(tr, t.status)} · {t.vehicleNo}</option>
                 ))}
               </select>
-              <label htmlFor="c-area">Dumping area <span className="opt">defaults to the pickup address</span></label>
-              <input id="c-area" value={complaintArea} onChange={(e) => setComplaintArea(e.target.value)} placeholder="e.g. drain behind Janpath market" />
+              <label htmlFor="c-area">{tr("act.area")} <span className="opt">{tr("act.areaHint")}</span></label>
+              <input id="c-area" value={complaintArea} onChange={(e) => setComplaintArea(e.target.value)} placeholder={tr("act.areaPlaceholder")} />
               <button type="button" className="btn wide" disabled={complaintBusy} onClick={generateComplaint}>
-                {complaintBusy ? "Building…" : "Build complaint from the trip record"}
+                {complaintBusy ? tr("act.building") : tr("act.buildButton")}
               </button>
               {complaintText && (
                 <>
-                  <textarea className="complaint-text" value={complaintText} onChange={(e) => setComplaintText(e.target.value)} rows={16} />
+                  <p className="fine">{tr("doc.englishOnly")}</p>
+                  <textarea className="complaint-text" lang="en" dir="ltr" value={complaintText} onChange={(e) => setComplaintText(e.target.value)} rows={16} />
                   <div className="row wrap">
-                    <button type="button" className="btn ghost" onClick={() => copyText(complaintText, "Complaint")}>Copy</button>
-                    <button type="button" className="btn ghost" onClick={() => downloadText(`safai-complaint-${complaintTripId}.txt`, complaintText)}>Download .txt</button>
-                    <a className="btn ghost" href={`https://wa.me/?text=${encodeURIComponent(complaintText.slice(0, 1800))}`} target="_blank" rel="noreferrer">Open in WhatsApp</a>
+                    <button type="button" className="btn ghost" onClick={() => copyText(complaintText, tr("act.copyLabel"))}>{tr("common.copy")}</button>
+                    <button type="button" className="btn ghost" onClick={() => downloadText(`safai-complaint-${complaintTripId}.txt`, complaintText)}>{tr("act.download")}</button>
+                    <a className="btn ghost" href={`https://wa.me/?text=${encodeURIComponent(complaintText.slice(0, 1800))}`} target="_blank" rel="noreferrer">{tr("act.whatsapp")}</a>
                   </div>
-                  <p className="fine">WhatsApp truncates long text. Attach the downloaded file if you need the full record.</p>
+                  <p className="fine">{tr("act.whatsappFine")}</p>
                 </>
               )}
             </div>
 
             <div className="field-col">
               <div className="section-head">
-                <h2>Where to send it</h2>
-                <p>Official routes only. Numbers checked against the linked page on {HELP_VERIFIED_ON}.</p>
+                <h2>{tr("act.routesTitle")}</h2>
+                <p>{tr("act.routesLead", { date: HELP_VERIFIED_ON })}</p>
               </div>
               <ul className="help-list">
                 {HELP_ROUTES.map((h) => (
                   <li key={h.name}>
                     <div className="help-main">
                       <strong>{h.name}</strong>
-                      <span className="help-note">{h.note}</span>
+                      <span className="help-note">{tr(h.noteKey)}</span>
                       <a className="help-source" href={h.sourceUrl} target="_blank" rel="noreferrer">{h.sourceLabel}</a>
                     </div>
                     <div className="help-action">
                       {h.number && <a className="help-number" href={`tel:${h.number}`}>{h.number}</a>}
                       {h.alt && <span className="help-alt">{h.alt}</span>}
-                      <a className="help-open" href={h.url} target="_blank" rel="noreferrer">{h.channel}</a>
+                      <a className="help-open" href={h.url} target="_blank" rel="noreferrer">{tr(h.channelKey)}</a>
                     </div>
                   </li>
                 ))}
               </ul>
-              <p className="fine">If a number is wrong or changes, use the linked official page — do not trust a number copied from a poster.</p>
+              <p className="fine">{tr("act.routesFine")}</p>
             </div>
           </div>
         )}
@@ -1217,70 +1251,70 @@ export default function Home() {
         {tab === "oversight" && (
           <div className="oversight">
             <div className="kpi-strip">
-              <div><span className="kpi-num">{stats?.total ?? "—"}</span><span className="kpi-label">trips booked</span><span className="kpi-sub">pilot-collected</span></div>
-              <div><span className="kpi-num ok">{stats?.pctSafe ?? 0}%</span><span className="kpi-label">safely disposed</span><span className="kpi-sub">verified ÷ (verified + flagged)</span></div>
-              <div><span className="kpi-num bad">{stats?.flagged ?? 0}</span><span className="kpi-label">flagged</span><span className="kpi-sub">no plant receipt</span></div>
-              <div><span className="kpi-num">{stats?.inFlight ?? 0}</span><span className="kpi-label">in flight</span><span className="kpi-sub">chain still open</span></div>
-              <div><span className="kpi-num">{stats?.avgKm ?? 0} km</span><span className="kpi-label">average trip</span><span className="kpi-sub">OSRM live at booking</span></div>
+              <div><span className="kpi-num">{stats?.total ?? "—"}</span><span className="kpi-label">{tr("oversight.kpiTrips")}</span><span className="kpi-sub">{tr("oversight.kpiTripsSub")}</span></div>
+              <div><span className="kpi-num ok">{stats?.pctSafe ?? 0}%</span><span className="kpi-label">{tr("oversight.kpiSafe")}</span><span className="kpi-sub">{tr("oversight.kpiSafeSub")}</span></div>
+              <div><span className="kpi-num bad">{stats?.flagged ?? 0}</span><span className="kpi-label">{tr("oversight.kpiFlagged")}</span><span className="kpi-sub">{tr("oversight.kpiFlaggedSub")}</span></div>
+              <div><span className="kpi-num">{stats?.inFlight ?? 0}</span><span className="kpi-label">{tr("oversight.kpiInFlight")}</span><span className="kpi-sub">{tr("oversight.kpiInFlightSub")}</span></div>
+              <div><span className="kpi-num">{stats?.avgKm ?? 0} km</span><span className="kpi-label">{tr("oversight.kpiAvg")}</span><span className="kpi-sub">{tr("oversight.kpiAvgSub")}</span></div>
             </div>
 
             <div className="oversight-grid">
               <div className="oversight-col">
                 <div className="section-head">
-                  <h2>Dumping hotspots</h2>
-                  <p>Flagged trips are the ULB inspection queue. A flag is a missing receipt, not a proven dump.</p>
+                  <h2>{tr("oversight.hotspotsTitle")}</h2>
+                  <p>{tr("oversight.hotspotsLead")}</p>
                 </div>
-                {hotspots.length === 0 && <p className="empty">No flagged trips. Every completed pilot trip has a plant receipt.</p>}
+                {hotspots.length === 0 && <p className="empty">{tr("oversight.hotspotsEmpty")}</p>}
                 {hotspots.map((t) => (
                   <div className="hotspot" key={t.id}>
                     <div className="hotspot-head">
                       <span className="mono">{t.id}</span>
-                      <span className="pilot-tag">Pilot</span>
+                      <span className="pilot-tag">{tr("common.pilot")}</span>
                       <span className="bad">{t.vehicleNo}</span>
                     </div>
                     <p>{t.householdAddress}</p>
                     <p className="dim">{t.flaggedReason}</p>
                     <div className="row wrap">
-                      <button type="button" className="link-btn" onClick={() => { setSelectedId(t.id); setTab("act"); setComplaintTripId(t.id); }}>Build complaint</button>
-                      <a className="link-btn" href={`https://www.openstreetmap.org/?mlat=${t.householdLat}&mlon=${t.householdLon}#map=15/${t.householdLat}/${t.householdLon}`} target="_blank" rel="noreferrer">Pickup on OSM</a>
+                      <button type="button" className="link-btn" onClick={() => { setSelectedId(t.id); setTab("act"); setComplaintTripId(t.id); }}>{tr("oversight.buildComplaint")}</button>
+                      <a className="link-btn" href={`https://www.openstreetmap.org/?mlat=${t.householdLat}&mlon=${t.householdLon}#map=15/${t.householdLat}/${t.householdLon}`} target="_blank" rel="noreferrer">{tr("dossier.pickupOsm")}</a>
                     </div>
                   </div>
                 ))}
 
                 <div className="section-head sub">
-                  <h2>Verification log</h2>
-                  <p>Payment releases only on VERIFIED: OTP match plus a weighbridge receipt.</p>
+                  <h2>{tr("oversight.logTitle")}</h2>
+                  <p>{tr("oversight.logLead")}</p>
                 </div>
                 <div className="table-wrap">
                   <table className="log-table">
-                    <thead><tr><th>Trip</th><th>Status</th><th>Plant</th><th>Receipt</th><th>Payment</th></tr></thead>
+                    <thead><tr><th>{tr("common.trip")}</th><th>{tr("oversight.status")}</th><th>{tr("common.plant")}</th><th>{tr("oversight.receipt")}</th><th>{tr("oversight.payment")}</th></tr></thead>
                     <tbody>
                       {trips.map((t) => (
                         <tr key={t.id}>
                           <td className="mono">{t.id}</td>
-                          <td><span className={`status-chip ${t.status}`}>{STATUS_LABEL[t.status] || t.status}</span></td>
+                          <td><span className={`status-chip ${t.status}`}>{tripStatusLabel(tr, t.status)}</span></td>
                           <td>{t.plantName}</td>
                           <td>{t.receiptId || "—"}</td>
-                          <td>{t.paymentReleased ? "released" : "held"}</td>
+                          <td>{t.paymentReleased ? tr("oversight.released") : tr("oversight.held")}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
                 <div className="row wrap">
-                  <button type="button" className="btn ghost" onClick={exportCsv}>Export CSV</button>
-                  <a className="btn ghost" href="/api/stats" target="_blank" rel="noreferrer">Open /api/stats</a>
+                  <button type="button" className="btn ghost" onClick={exportCsv}>{tr("oversight.exportCsv")}</button>
+                  <a className="btn ghost" href="/api/stats" target="_blank" rel="noreferrer">{tr("oversight.openStats")}</a>
                 </div>
               </div>
 
               <div className="oversight-col">
                 <div className="section-head">
-                  <h2>Live calls</h2>
-                  <p>Every upstream request this session, with its HTTP status. Failures are shown, never smoothed over.</p>
+                  <h2>{tr("oversight.callsTitle")}</h2>
+                  <p>{tr("oversight.callsLead")}</p>
                 </div>
                 <div className="table-wrap call-table">
                   <table className="log-table">
-                    <thead><tr><th>Time</th><th>Call</th><th>Status</th><th>Note</th></tr></thead>
+                    <thead><tr><th>{tr("oversight.time")}</th><th>{tr("oversight.call")}</th><th>{tr("oversight.status")}</th><th>{tr("oversight.note")}</th></tr></thead>
                     <tbody>
                       {callLog.map((c) => (
                         <tr key={c.id}>
@@ -1290,22 +1324,22 @@ export default function Home() {
                           <td>{c.note}</td>
                         </tr>
                       ))}
-                      {!callLog.length && <tr><td colSpan={4}>No calls yet.</td></tr>}
+                      {!callLog.length && <tr><td colSpan={4}>{tr("oversight.noCalls")}</td></tr>}
                     </tbody>
                   </table>
                 </div>
 
                 <details className="ai-box">
-                  <summary>Hindi gate script (BharatCode)</summary>
-                  <p>Optional field aid. The model is 503-prone; the flow falls back to a template and never blocks verification.</p>
+                  <summary>{tr("oversight.aiSummary")}</summary>
+                  <p>{tr("oversight.aiLead")}</p>
                   <div className="row wrap">
                     <select value={aiTripId} onChange={(e) => setAiTripId(e.target.value)}>
                       {trips.map((t) => <option key={t.id} value={t.id}>{t.id} · {t.plantName}</option>)}
                     </select>
-                    <button type="button" className="btn ghost" disabled={aiBusy} onClick={runAi}>{aiBusy ? "Calling…" : "Generate"}</button>
+                    <button type="button" className="btn ghost" disabled={aiBusy} onClick={runAi}>{aiBusy ? tr("oversight.calling") : tr("oversight.generate")}</button>
                   </div>
-                  {aiText && <pre className="ai-text">{aiText}</pre>}
-                  {aiSource && <p className="fine">Source: {aiSource}</p>}
+                  {aiText && <pre className="ai-text" lang="en" dir="ltr">{aiText}</pre>}
+                  {aiSource && <p className="fine">{tr("oversight.aiSource", { source: aiSource })}</p>}
                 </details>
               </div>
             </div>
@@ -1316,46 +1350,49 @@ export default function Home() {
       <footer className="foot">
         <div className="foot-grid">
           <div>
-            <h2>What this proves</h2>
-            <p>A trip is verified only when the plant OTP matches and a weighbridge receipt is recorded. No receipt, no payment. The pilot does not claim a municipal mandate or a measured dumping rate.</p>
-            <p className="fine">Built for Code for a Billion · Impact: Sanitation. Trip rows are pilot-collected and labelled.</p>
+            <h2>{tr("footer.provesTitle")}</h2>
+            <p>{tr("footer.provesBody")}</p>
+            <p className="fine">{tr("footer.builtFor")}</p>
           </div>
           <div>
-            <h2>Norms + price</h2>
+            <h2>{tr("footer.normsTitle")}</h2>
             <ul>
-              <li><a href={CPHEEO.intervalUrl} target="_blank" rel="noreferrer">SBM-U / CPHEEO FSM advisory (Nov 2024)</a> — 2–3 year desludging band</li>
-              <li><a href={CPHEEO.accumulationUrl} target="_blank" rel="noreferrer">CPHEEO Sewerage &amp; Sewage Treatment manual (2012)</a> — 0.067 m³/person/yr</li>
-              <li><a href={PRICE_BENCHMARK.primaryUrl} target="_blank" rel="noreferrer">Jharkhand LWM &amp; User Charges Rules 2025</a> — ₹1,500 / ₹2,500 per trip</li>
-              <li><a href={PRICE_BENCHMARK.secondaryUrl} target="_blank" rel="noreferrer">NMCG Septage Practitioner&apos;s Guide</a> — ₹1,500 per trip</li>
+              <li><a href={CPHEEO.intervalUrl} target="_blank" rel="noreferrer">{tr("footer.linkAdvisory")}</a> — {tr("footer.linkAdvisoryNote")}</li>
+              <li><a href={CPHEEO.accumulationUrl} target="_blank" rel="noreferrer">{tr("footer.linkManual")}</a> — {tr("footer.linkManualNote")}</li>
+              <li><a href={PRICE_BENCHMARK.primaryUrl} target="_blank" rel="noreferrer">{tr("footer.linkRates")}</a> — {tr("footer.linkRatesNote")}</li>
+              <li><a href={PRICE_BENCHMARK.secondaryUrl} target="_blank" rel="noreferrer">{tr("footer.linkGuide")}</a> — {tr("footer.linkGuideNote")}</li>
             </ul>
           </div>
           <div>
-            <h2>Problem + data</h2>
+            <h2>{tr("footer.dataTitle")}</h2>
             <ul>
-              <li><a href="https://www.ndtv.com/india-news/nearly-500-died-while-cleaning-sewers-or-septic-tanks-since-2019-centre-11866683" target="_blank" rel="noreferrer">498 sewer/septic-cleaning deaths since Jan 2019</a> — Central Govt data in Lok Sabha (NCSK reporting)</li>
-              <li><a href="https://sbmurban.org/storage/app/media/pdf/swachh-bharat-2.pdf" target="_blank" rel="noreferrer">SBM (Urban) 2.0</a> — ~4,000 ULBs in scope</li>
-              <li><a href="https://censusindia.gov.in/" target="_blank" rel="noreferrer">Census 2011 C-08 + NSSO 76th Round</a> — off-sewer context</li>
+              <li><a href="https://www.ndtv.com/india-news/nearly-500-died-while-cleaning-sewers-or-septic-tanks-since-2019-centre-11866683" target="_blank" rel="noreferrer">{tr("footer.linkDeaths")}</a> — {tr("footer.linkDeathsNote")}</li>
+              <li><a href="https://sbmurban.org/storage/app/media/pdf/swachh-bharat-2.pdf" target="_blank" rel="noreferrer">SBM (Urban) 2.0</a> — {tr("footer.linkSbmNote")}</li>
+              <li><a href="https://censusindia.gov.in/" target="_blank" rel="noreferrer">{tr("footer.linkCensus")}</a> — {tr("footer.linkCensusNote")}</li>
               <li><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> (ODbL) · Overpass · OSRM · India Post · Nominatim</li>
             </ul>
           </div>
         </div>
         <div className="foot-base">
-          <span>Safai Trace · pilot console</span>
-          <span>No fabricated coordinates, plants, distances, prices or phone numbers.</span>
+          <span>{tr("footer.baseBrand")}</span>
+          <span>{tr("footer.baseNote")}</span>
         </div>
       </footer>
     </div>
   );
 }
 
-function buildChain(trip: Trip | null) {
+function buildChain(
+  trip: Trip | null,
+  t: (key: MessageKey, vars?: Record<string, string | number>) => string
+) {
   const stations: string[] = ["pending", "pending", "pending", "pending"];
   const links: string[] = ["pending", "pending", "pending"];
   if (!trip) {
     return {
       stations,
       links,
-      caption: "Select a trip. The chain fills only when a plant verifies the load; nothing is pre-filled.",
+      caption: t("chain.caption.none"),
     };
   }
   if (trip.status === "FLAGGED") {
@@ -1369,7 +1406,9 @@ function buildChain(trip: Trip | null) {
     return {
       stations,
       links,
-      caption: `Chain broken at the plant gate. ${trip.flaggedReason || "No weighbridge receipt."} Payment is held; the ULB queue has the hotspot.`,
+      caption: t("chain.caption.flagged", {
+        reason: trip.flaggedReason || t("chain.noReceiptReason"),
+      }),
     };
   }
   const idx = ["BOOKED", "EN_ROUTE", "AT_PLANT", "VERIFIED"].indexOf(trip.status);
@@ -1384,12 +1423,15 @@ function buildChain(trip: Trip | null) {
     links[2] = "done";
   }
   const captions: Record<string, string> = {
-    BOOKED: "Job logged, OTP issued. Nothing is proven yet — the chain is open.",
-    EN_ROUTE: "Tanker moving. The load is unproven until it reaches a plant gate.",
-    AT_PLANT: "At the gate. The chain closes only when the plant OTP matches and a weighbridge receipt is entered.",
-    VERIFIED: `Receipt ${trip.receiptId} sealed ${fmtDateTime(trip.verifiedAt)}. Payment released.`,
+    BOOKED: t("chain.caption.booked"),
+    EN_ROUTE: t("chain.caption.enRoute"),
+    AT_PLANT: t("chain.caption.atPlant"),
+    VERIFIED: t("chain.caption.verified", {
+      receipt: trip.receiptId ?? "—",
+      at: fmtDateTime(trip.verifiedAt),
+    }),
   };
-  return { stations, links, caption: captions[trip.status] || "Chain state unknown." };
+  return { stations, links, caption: captions[trip.status] || t("chain.caption.unknown") };
 }
 
 function ChainMark() {

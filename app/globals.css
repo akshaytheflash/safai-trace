@@ -694,7 +694,9 @@ select { appearance: none; background-image: linear-gradient(45deg, transparent 
 }
 
 @media (max-width: 640px) {
-  .masthead { padding: 10px 14px; gap: 10px; }
+  .masthead { padding: 10px 14px; gap: 8px; grid-template-columns: minmax(0, 1fr); }
+  .mast-meta { flex-wrap: wrap; gap: 8px 10px; }
+  .api-lights { justify-content: flex-start; }
   .brand h1 { font-size: 23px; }
   .brand p { font-size: 9px; }
   .chain-mark { width: 30px; height: 22px; }
@@ -787,3 +789,83 @@ select { appearance: none; background-image: linear-gradient(45deg, transparent 
 .fp-note { margin: 10px 0 0; font-size: 11.5px; line-height: 1.5; color: var(--red); border-left: 3px solid var(--red); padding-left: 8px; }
 @media (prefers-reduced-motion: reduce) { .float-pay { animation: none; } }
 @media print { .float-pay { display: none !important; } }
+
+/* ---------- i18n: language switcher ---------- */
+.lang-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 1;
+  color: inherit;
+  white-space: nowrap;
+}
+.lang-switcher-globe {
+  width: 13px;
+  height: 13px;
+  flex: none;
+  opacity: 0.75;
+}
+.lang-switcher-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+.lang-switcher select {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid currentColor;
+  border-color: color-mix(in srgb, currentColor 30%, transparent);
+  border-radius: 999px;
+  background-color: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.3;
+  padding: 4px 22px 4px 8px;
+  max-width: 9.5rem;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23888' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 7px center;
+  background-size: 8px;
+}
+.lang-switcher select:hover {
+  border-color: currentColor;
+}
+.lang-switcher select:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+[dir="rtl"] .lang-switcher select {
+  padding: 4px 8px 4px 22px;
+  background-position: left 7px center;
+}
+[dir="rtl"] body {
+  text-align: right;
+}
+[dir="rtl"] input[type="number"],
+[dir="rtl"] input[type="tel"],
+[dir="rtl"] input[type="email"],
+[dir="rtl"] code,
+[dir="rtl"] kbd,
+[dir="rtl"] samp {
+  direction: ltr;
+  unicode-bidi: embed;
+}
+[dir="rtl"] input[type="number"] {
+  text-align: right;
+}
+/* Indic glyph fallback for scripts the display faces do not cover. */
+:root {
+  --i18n-font-fallback: "Noto Sans Devanagari", "Noto Sans Bengali", "Noto Nastaliq Urdu",
+    "Noto Sans Gujarati", "Noto Sans Oriya", "Noto Sans Tamil", "Noto Sans Telugu",
+    "Noto Sans Kannada", "Noto Sans Malayalam", sans-serif;
+}

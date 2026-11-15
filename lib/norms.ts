@@ -1,23 +1,26 @@
 // Cited planning norms and citizen-help data. No invented benchmarks.
 // Everything here is either quoted from a linked public document or computed
 // from the user's own inputs.
+//
+// Display prose lives in lib/i18n/messages/en.ts so it can be translated;
+// formulas, rates, numbers, URLs and scheme names stay here unchanged.
+
+import { translate } from "./i18n";
+import type { MessageKey } from "./i18n/messages/en";
+
+type Translate = (key: MessageKey, vars?: Record<string, string | number>) => string;
+
+/** English fallback for callers that have no request locale (tests, scripts). */
+const enT: Translate = (key, vars) => translate("en", key, vars);
 
 export const CPHEEO = {
   sludgeM3PerPersonYear: 0.067,
   planningBandYears: [2, 3] as [number, number],
   is2470FiveUserThreeYearLitres: 1500,
-  accumulationSource:
-    "CPHEEO Manual on Sewerage and Sewage Treatment (2012), Table 9.2: 0.067 m³ per capita per year for a 3-year desludging interval (wet conditions).",
   accumulationUrl:
     "https://sswm.info/sites/default/files/reference_attachments/CPHEEO%202012%20Manual%20on%20sewerage%20and%20sewage%20treatment.%20Part%20A%20Engineering.pdf",
-  intervalSource:
-    "SBM-U Advisory on Faecal Sludge and Septage Management in Small and Medium Towns (CPHEEO, November 2024), quoting CPHEEO 2013: clean at least once in 2–3 years if the tank is not overloaded.",
   intervalUrl:
     "https://sbmurban.org/storage/app/media/e-library/Technical%20Advisory/Advisory%20on%20Faecal%20Sludge%20and%20Septage%20Management%20in%20Small%20and%20Medium%20Towns.pdf",
-  is2470Source:
-    "IS 2470 (Part 1):1985, as cited in the SBM-U 2024 advisory: 1.5 m³ effective capacity for a 5-person household at a 3-year cleaning interval.",
-  caveat:
-    "Planning estimate, not a measurement. Sludge depth must be checked on site. CPHEEO 2012 §9.3.5.3 also says small domestic tanks should be cleaned at least once in 1–2 years; a tank that fills faster than 2 years needs annual emptying.",
 };
 
 export type NormResult = {
@@ -32,7 +35,11 @@ export type NormResult = {
   detail: string;
 };
 
-export function calculateDesludging(personsInput: number, tankLitresInput: number): NormResult {
+export function calculateDesludging(
+  personsInput: number,
+  tankLitresInput: number,
+  t: Translate = enT
+): NormResult {
   const persons = Math.max(1, Math.min(50, Math.round(personsInput || 1)));
   const tankLitres = Math.max(100, Math.min(100000, Math.round(tankLitresInput || 0)));
   const annualSludgeL = Math.round(persons * CPHEEO.sludgeM3PerPersonYear * 1000);
@@ -49,8 +56,13 @@ export function calculateDesludging(personsInput: number, tankLitresInput: numbe
       recommendedYears: 1,
       required3yL,
       status: "undersized",
-      headline: "Empty it every year",
-      detail: `At ${annualSludgeL} L of sludge a year, this ${tankLitres.toLocaleString("en-IN")} L tank reaches its planning limit in ${rounded} years — below the CPHEEO 2–3 year band. Treat it as undersized: desludge annually and plan a larger tank. A 3-year interval needs about ${required3yL.toLocaleString("en-IN")} L of sludge storage.`,
+      headline: t("norms.headline.undersized"),
+      detail: t("norms.detail.undersized", {
+        annual: annualSludgeL,
+        tank: tankLitres.toLocaleString("en-IN"),
+        years: rounded,
+        required: required3yL.toLocaleString("en-IN"),
+      }),
     };
   }
 
@@ -63,8 +75,13 @@ export function calculateDesludging(personsInput: number, tankLitresInput: numbe
       recommendedYears: Math.max(2, Math.floor(yearsToFill)),
       required3yL,
       status: "within",
-      headline: "Within the 2–3 year band",
-      detail: `At ${annualSludgeL} L of sludge a year, this ${tankLitres.toLocaleString("en-IN")} L tank reaches its planning limit in ${rounded} years. Schedule emptying every ${Math.max(2, Math.floor(yearsToFill))} years, inside the CPHEEO band. Do not wait for an overflow call.`,
+      headline: t("norms.headline.within"),
+      detail: t("norms.detail.within", {
+        annual: annualSludgeL,
+        tank: tankLitres.toLocaleString("en-IN"),
+        years: rounded,
+        recommended: Math.max(2, Math.floor(yearsToFill)),
+      }),
     };
   }
 
@@ -76,8 +93,11 @@ export function calculateDesludging(personsInput: number, tankLitresInput: numbe
     recommendedYears: 3,
     required3yL,
     status: "longer",
-    headline: "Cap the interval at 3 years",
-    detail: `The tank has roughly ${rounded} years of sludge storage at ${annualSludgeL} L a year, but CPHEEO caps the planning interval at 3 years. Book at year 3, not when it overflows.`,
+    headline: t("norms.headline.longer"),
+    detail: t("norms.detail.longer", {
+      years: rounded,
+      annual: annualSludgeL,
+    }),
   };
 }
 
@@ -86,16 +106,9 @@ export const PRICE_BENCHMARK = {
   max: 2500,
   currency: "INR",
   unit: "per trip",
-  label: "Residential / mixed-property septic tank collection",
-  primarySource:
-    "Jharkhand Liquid Waste Management & User Charges Rules, 2025, §11: ₹1,500 per trip (residential septic tank), ₹2,500 per trip (mixed property).",
   primaryUrl: "https://udhd.jharkhand.gov.in/Handlers/Notices2.ashx?id=05012026040134PM.pdf",
-  secondarySource:
-    "NMCG / CSE Septage Management: A Practitioner's Guide: a private mechanised truck charges about ₹1,500 per trip.",
   secondaryUrl:
     "https://nmcg.nic.in/writereaddata/fileupload/5_Septage%20Practitioner's%20Guide-EnglishVersion.pdf",
-  caveat:
-    "This is a notified ULB rate card from Jharkhand (2025), cross-checked with the NMCG guide — not a Delhi notified rate. Ask your ULB for its current rate card. A per-trip price is not a per-litre price.",
 };
 
 export type PriceResult = {
@@ -105,30 +118,31 @@ export type PriceResult = {
   quote: number;
 };
 
-export function checkPrice(quoteInput: number): PriceResult | null {
+export function checkPrice(quoteInput: number, t: Translate = enT): PriceResult | null {
   if (!Number.isFinite(quoteInput) || quoteInput <= 0) return null;
   const quote = Math.round(quoteInput);
+  const formatted = quote.toLocaleString("en-IN");
   if (quote < PRICE_BENCHMARK.min) {
     return {
       status: "below",
       quote,
-      headline: "Below the cited range",
-      detail: `₹${quote.toLocaleString("en-IN")} is under the ₹1,500–₹2,500 benchmark. An unusually low quote is how a trip gets paid for without a treatment-plant receipt. Ask where the load will be tipped, and require the weighbridge slip before paying.`,
+      headline: t("price.headline.below"),
+      detail: t("price.detail.below", { quote: formatted }),
     };
   }
   if (quote > PRICE_BENCHMARK.max) {
     return {
       status: "above",
       quote,
-      headline: "Above the cited range",
-      detail: `₹${quote.toLocaleString("en-IN")} is above the ₹1,500–₹2,500 benchmark. Ask for an itemised bill (emptying + transport + treatment fee) and the plant receipt. A high price is not proof of safe disposal.`,
+      headline: t("price.headline.above"),
+      detail: t("price.detail.above", { quote: formatted }),
     };
   }
   return {
     status: "within",
     quote,
-    headline: "Within the cited range",
-    detail: `₹${quote.toLocaleString("en-IN")} sits inside the ₹1,500–₹2,500 benchmark. Price is not proof: the plant OTP and weighbridge receipt still decide whether payment releases.`,
+    headline: t("price.headline.within"),
+    detail: t("price.detail.within", { quote: formatted }),
   };
 }
 
@@ -137,8 +151,8 @@ export type HelpRoute = {
   number?: string;
   alt?: string;
   url: string;
-  channel: string;
-  note: string;
+  channelKey: MessageKey;
+  noteKey: MessageKey;
   sourceUrl: string;
   sourceLabel: string;
 };
@@ -148,24 +162,24 @@ export const HELP_ROUTES: HelpRoute[] = [
     name: "Swachh Bharat Mission (Urban) helpline",
     number: "1969",
     url: "https://sbmurban.org/contact-us",
-    channel: "Phone",
-    note: "National SBM-U helpline; the Swachhata app lists 1969 for app and sanitation queries.",
+    channelKey: "help.channel.phone",
+    noteKey: "help.note.sbm",
     sourceUrl: "https://sbmurban.org/contact-us",
     sourceLabel: "sbmurban.org/contact-us",
   },
   {
     name: "Swachhata app (MoHUA)",
     url: "https://swachh.city/",
-    channel: "App / web",
-    note: "Geo-tagged photo complaint routed to your ULB. Use the trip ID and vehicle number in the description.",
+    channelKey: "help.channel.appWeb",
+    noteKey: "help.note.swachhata",
     sourceUrl: "https://play.google.com/store/apps/details?id=com.ichangemycity.swachhbharat",
     sourceLabel: "Swachhata-MoHUA on Google Play",
   },
   {
     name: "CPGRAMS",
     url: "https://pgportal.gov.in/",
-    channel: "Web",
-    note: "Central public grievance portal. Escalate if the ULB does not respond; attach the complaint text and any photos.",
+    channelKey: "help.channel.web",
+    noteKey: "help.note.cpgrams",
     sourceUrl: "https://pgportal.gov.in/",
     sourceLabel: "pgportal.gov.in",
   },
@@ -173,8 +187,8 @@ export const HELP_ROUTES: HelpRoute[] = [
     name: "Municipal Corporation of Delhi call centre",
     number: "155305",
     url: "https://mcdonline.nic.in/portal/contactUs",
-    channel: "Phone",
-    note: "MCD citizen call centre. MCD-311 also accepts non-emergency sanitation complaints.",
+    channelKey: "help.channel.phone",
+    noteKey: "help.note.mcd",
     sourceUrl: "https://mcdonline.nic.in/portal/contactUs",
     sourceLabel: "mcdonline.nic.in/portal/contactUs",
   },
@@ -183,8 +197,8 @@ export const HELP_ROUTES: HelpRoute[] = [
     number: "1916",
     alt: "1800-117-118",
     url: "https://delhijalboard.delhi.gov.in/jalboard/contact-us",
-    channel: "Phone",
-    note: "Water and sewer complaints for DJB-served areas, including sewer overflow and illegal discharge.",
+    channelKey: "help.channel.phone",
+    noteKey: "help.note.djb",
     sourceUrl: "https://delhijalboard.delhi.gov.in/jalboard/contact-us",
     sourceLabel: "delhijalboard.delhi.gov.in",
   },
@@ -192,8 +206,8 @@ export const HELP_ROUTES: HelpRoute[] = [
     name: "New Delhi Municipal Council",
     number: "1533",
     url: "https://www.ndmc.gov.in/complaints.aspx",
-    channel: "Phone",
-    note: "NDMC toll-free complaints line for the New Delhi municipal area.",
+    channelKey: "help.channel.phone",
+    noteKey: "help.note.ndmc",
     sourceUrl: "https://www.ndmc.gov.in/complaints.aspx",
     sourceLabel: "ndmc.gov.in/complaints",
   },
@@ -219,6 +233,8 @@ export type ComplaintTrip = {
   pilot: boolean;
 };
 
+// Generated complaint text is an official artifact and deliberately stays in
+// English regardless of the interface language.
 export function buildComplaint(trip: ComplaintTrip, area?: string) {
   const created = new Date(trip.createdAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
   const where = area?.trim() || trip.householdAddress;

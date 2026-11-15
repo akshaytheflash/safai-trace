@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useI18n } from "./I18nProvider";
 
 type TripRow = {
   id: string;
@@ -18,6 +19,7 @@ type TripRow = {
  * queue. No receipt, no payment — the held figure is the visual argument.
  */
 export default function FloatingPayout({ trips }: { trips: TripRow[] }) {
+  const { t } = useI18n();
   const [shown, setShown] = useState(false);
 
   useEffect(() => {
@@ -41,20 +43,20 @@ export default function FloatingPayout({ trips }: { trips: TripRow[] }) {
   if (!trips.length) return null;
 
   return (
-    <aside className="float-pay" aria-label="Payment today">
-      <p className="fp-label">Released against plant receipts</p>
+    <aside className="float-pay" aria-label={t("floating.aria")}>
+      <p className="fp-label">{t("floating.releasedLabel")}</p>
       <p className="fp-paid">₹{paid.toLocaleString("en-IN")}</p>
       <div className="fp-row">
         <div>
-          <span className="fp-k">Payment held</span>
+          <span className="fp-k">{t("floating.held")}</span>
           <span className="fp-v">{held > 0 ? `₹${held.toLocaleString("en-IN")}` : "₹0"}</span>
         </div>
         <div>
-          <span className="fp-k">Flagged trips</span>
+          <span className="fp-k">{t("floating.flagged")}</span>
           <span className="fp-v">{flagged}</span>
         </div>
       </div>
-      {held > 0 && <p className="fp-note">Held until a weighbridge receipt is entered at the plant.</p>}
+      {held > 0 && <p className="fp-note">{t("floating.note")}</p>}
     </aside>
   );
 }
